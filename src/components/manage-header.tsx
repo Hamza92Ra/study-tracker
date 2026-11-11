@@ -1,0 +1,1 @@
+export function ManageHeader({eyebrow,title,children}:{eyebrow:string;title:string;children?:React.ReactNode}){return <header className="manage-header"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1></div><div className="manage-header-actions">{children}</div></header>}

@@ -1,0 +1,1 @@
+export default function Loading(){return <main className="container public-main"><div className="loading-card mb-5"/><div className="stats-grid">{Array.from({length:6},(_,i)=><div className="loading-card" key={i}/>)}</div></main>}

@@ -1,0 +1,4 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { Moon, Sun } from 'lucide-react'
+export function ThemeToggle({preference='system'}:{preference?:string}){const [dark,setDark]=useState(false);useEffect(()=>{const stored=localStorage.getItem('study-theme');const enabled=stored==='dark'||(!stored&&(preference==='dark'||(preference==='system'&&matchMedia('(prefers-color-scheme: dark)').matches)));document.documentElement.classList.toggle('dark',enabled);const frame=requestAnimationFrame(()=>setDark(enabled));return()=>cancelAnimationFrame(frame)},[preference]);function toggle(){const next=!dark;setDark(next);document.documentElement.classList.toggle('dark',next);localStorage.setItem('study-theme',next?'dark':'light')}return <button onClick={toggle} className="icon-button" aria-label={dark?'Use light theme':'Use dark theme'} title="Toggle theme">{dark?<Sun size={19}/>:<Moon size={19}/>}</button>}

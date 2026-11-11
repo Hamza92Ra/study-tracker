@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+model User {
+  id String @id @default(cuid())
+  username String @unique
+  email String @unique
+  passwordHash String
+  displayName String
+  avatarUrl String?
+  biography String? @db.VarChar(500)
+  studyGoal String? @db.VarChar(240)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  subjects Subject[]
+  sessions StudySession[]
+  goal StudyGoal?
+  settings UserSettings?
+  timer TimerState?
+}
+model Subject {
+  id String @id @default(cuid())
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  name String @db.VarChar(100)
+  slug String @db.VarChar(120)
+  description String? @db.VarChar(500)
+  color String @default("#7c3aed") @db.VarChar(7)
+  icon String @default("book") @db.VarChar(30)
+  isArchived Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions StudySession[]
+  @@unique([ownerId, slug])
+  @@index([ownerId, isArchived])
+}
+model StudySession {
+  id String @id @default(cuid())
+  ownerId String
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  subjectId String
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  title String @db.VarChar(160)
+  notes String? @db.Text
+  startedAt DateTime
+  endedAt DateTime
+  durationSeconds Int
+  isPublic Boolean @default(true)
+  idempotencyKey String? @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([ownerId, startedAt(sort: Desc)])
+  @@index([subjectId, startedAt(sort: Desc)])
+  @@index([ownerId, isPublic, startedAt(sort: Desc)])
+}
+model StudyGoal {
+  id String @id @default(cuid())
+  ownerId String @unique
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  dailyTargetMinutes Int @default(180)
+  updatedAt DateTime @updatedAt
+}
+model UserSettings {
+  id String @id @default(cuid())
+  ownerId String @unique
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  timezone String @default("Africa/Casablanca") @db.VarChar(80)
+  profileVisibility String @default("public") @db.VarChar(10)
+  themePreference String @default("system") @db.VarChar(10)
+  updatedAt DateTime @updatedAt
+}
+model TimerState {
+  id String @id @default(cuid())
+  ownerId String @unique
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  subjectId String
+  title String @db.VarChar(160)
+  startedAt DateTime
+  runningSince DateTime?
+  stoppedAt DateTime?
+  elapsedSeconds Int @default(0)
+  status String @default("running") @db.VarChar(10)
+  saveKey String @unique
+  updatedAt DateTime @updatedAt
+}
+model LoginAttempt {
+  id String @id @default(cuid())
+  key String @unique @db.VarChar(128)
+  attempts Int @default(0)
+  windowAt DateTime @default(now())
+  blockedAt DateTime?
+}

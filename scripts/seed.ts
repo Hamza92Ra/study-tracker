@@ -1,0 +1,4 @@
+import 'dotenv/config'
+import { prisma } from '../src/lib/db'
+async function main(){if(process.env.NODE_ENV==='production'||process.env.DEMO_SEED!=='1')throw new Error('Set DEMO_SEED=1 in a development environment to load optional sample data.');const owner=await prisma.user.findFirst();if(!owner)throw new Error('Create an owner first.');const examples=[['Mathematics','#739e6c','calculator'],['Literature','#e0a46e','book'],['Computer Science','#7b91d4','code']] as const;for(const [name,color,icon] of examples)await prisma.subject.upsert({where:{ownerId_slug:{ownerId:owner.id,slug:name.toLowerCase().replaceAll(' ','-')}},update:{},create:{ownerId:owner.id,name,slug:name.toLowerCase().replaceAll(' ','-'),color,icon}});console.log('Development subjects added. No sessions were fabricated.')}
+main().catch(e=>{console.error(e.message);process.exitCode=1}).finally(()=>prisma.$disconnect())

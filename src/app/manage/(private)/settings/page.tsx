@@ -1,0 +1,5 @@
+import { ownerPage } from '@/lib/owner-page'
+import { prisma } from '@/lib/db'
+import { ManageHeader } from '@/components/manage-header'
+import { SettingsForm } from '@/components/settings-form'
+export default async function SettingsPage(){const owner=await ownerPage();const [settings,goal]=await Promise.all([prisma.userSettings.findUnique({where:{ownerId:owner.id}}),prisma.studyGoal.findUnique({where:{ownerId:owner.id}})]);return <><ManageHeader eyebrow="Personalize" title="Settings"/><p className="page-intro">Set your public profile, daily target, and local calendar timezone.</p><SettingsForm initial={{displayName:owner.displayName,avatarUrl:owner.avatarUrl||'',biography:owner.biography||'',studyGoal:owner.studyGoal||'',timezone:settings?.timezone||'Africa/Casablanca',dailyTargetMinutes:goal?.dailyTargetMinutes||180,profileVisibility:(settings?.profileVisibility==='private'?'private':'public'),themePreference:(settings?.themePreference==='dark'||settings?.themePreference==='light'?settings.themePreference:'system')}}/></>}
