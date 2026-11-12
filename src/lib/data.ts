@@ -2,7 +2,7 @@ import { prisma } from './db'
 import { addCalendarDays, dailyAllocation, localDay, startOfLocalDay, streaks, validDay, weeklySeries } from './time'
 import type { Prisma } from '@prisma/client'
 export async function publicOwner() {
-  const owner = await prisma.user.findFirst({ orderBy: { createdAt: 'asc' }, include: { settings: true, goal: true } })
+  const owner = await prisma.user.findFirst({ where: { role: 'admin', isActive: true }, orderBy: { createdAt: 'asc' }, include: { settings: true, goal: true } })
   return owner?.settings?.profileVisibility === 'private' ? null : owner
 }
 export async function publicSummary() {

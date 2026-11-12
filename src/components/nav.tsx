@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowUpRight, BookOpen, ChartColumn, Clock3, LayoutDashboard, List, Settings } from 'lucide-react'
+import { ArrowUpRight, BookOpen, ChartColumn, Clock3, LayoutDashboard, List, Settings, Users } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import { Brand } from './brand'
 import { publicOwner } from '@/lib/data'
@@ -36,10 +36,12 @@ export function ManageNav({
   preference,
   avatarUrl,
   displayName,
+  isAdmin = false,
 }: {
   preference?: string
   avatarUrl?: string | null
   displayName?: string | null
+  isAdmin?: boolean
 }) {
   return (
     <aside className="manage-nav">
@@ -49,6 +51,7 @@ export function ManageNav({
         {links.map(([href, label, Icon]) => (
           <Link key={href} href={href}><Icon size={18} />{label}</Link>
         ))}
+        {isAdmin && <Link href="/manage/admin"><Users size={18} />People</Link>}
       </nav>
       <div className="manage-nav-footer">
         <ThemeToggle preference={preference} />

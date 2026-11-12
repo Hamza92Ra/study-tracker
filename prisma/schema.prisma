@@ -11,6 +11,10 @@ model User {
   username String @unique
   email String @unique
   passwordHash String
+  role String @default("member") @db.VarChar(10)
+  isActive Boolean @default(true)
+  credentialVersion Int @default(0)
+  mustChangePassword Boolean @default(false)
   displayName String
   avatarUrl String?
   biography String? @db.VarChar(500)
@@ -22,6 +26,7 @@ model User {
   goal StudyGoal?
   settings UserSettings?
   timer TimerState?
+  @@index([role, isActive])
 }
 model Subject {
   id String @id @default(cuid())

@@ -8,9 +8,9 @@ describe('database ownership and visibility',()=>{
     config()
     const {prisma}=await import('../src/lib/db') as {prisma:PrismaClient}
     const {activityPage,publicSummary}=await import('../src/lib/data')
-    const existingOwner=await prisma.user.findFirst()
+    const existingOwner=await prisma.user.findFirst({where:{role:'admin'}})
     const createdOwner=!existingOwner
-    const owner=existingOwner??await prisma.user.create({data:{username:`test-${crypto.randomUUID().slice(0,12)}`,email:`test-${crypto.randomUUID().slice(0,12)}@example.test`,displayName:'Integration Test',passwordHash:hashSync(crypto.randomUUID(),10),settings:{create:{timezone:'Africa/Casablanca',profileVisibility:'public'}},goal:{create:{dailyTargetMinutes:180}}}})
+    const owner=existingOwner??await prisma.user.create({data:{username:`test-${crypto.randomUUID().slice(0,12)}`,email:`test-${crypto.randomUUID().slice(0,12)}@example.test`,displayName:'Integration Test',role:'admin',passwordHash:hashSync(crypto.randomUUID(),10),settings:{create:{timezone:'Africa/Casablanca',profileVisibility:'public'}},goal:{create:{dailyTargetMinutes:180}}}})
     const suffix=crypto.randomUUID().slice(0,8)
     const subject=await prisma.subject.create({data:{ownerId:owner.id,name:`Integration ${suffix}`,slug:`integration-${suffix}`,color:'#638a53',icon:'book'}})
     const base=new Date('2026-09-20T10:00:00Z')
