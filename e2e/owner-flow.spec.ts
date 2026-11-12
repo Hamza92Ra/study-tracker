@@ -17,19 +17,16 @@ test('owner manages a subject and published study session', async ({ page }) => 
   await page.waitForURL(/\/manage$/, { timeout: 45000 })
   await expect(page.getByRole('heading', { name: /Good to see you/ })).toBeVisible()
   await page.goto('/manage/settings')
+  // React Hook Form initializes this field during hydration, not at initial navigation.
+  await expect(page.getByLabel('Username', { exact: true })).toHaveValue(process.env.E2E_OWNER_USERNAME!)
   const originalUsername = await page.getByLabel('Username', { exact: true }).inputValue()
   const changedUsername = `e2e_${suffix}`
   await page.getByLabel('Username', { exact: true }).fill(changedUsername)
   await page.getByLabel('Profile visibility').selectOption('public')
   await page.getByRole('button', { name: 'Save settings' }).click()
-  // CI-only diagnostic to distinguish client validation errors from network or auth issues.
-  console.info('CI_OWNER_SETTINGS_AFTER_SAVE', JSON.stringify({
-    location: page.url(),
-    body: (await page.locator('body').innerText()).slice(0, 2400),
-    username: await page.getByLabel('Username', { exact: true }).inputValue(),
-  }))
-  await expect(page.getByText(`Your public URL: /u/${changedUsername}`)).toBeVisible()
+  // Sidebar href only updates after saveSettings commits and router.refresh runs.
   await expect(page.getByRole('link', { name: 'View public site' })).toHaveAttribute('href', `/u/${changedUsername}`)
+  await expect(page.getByText(`Your public URL: /u/${changedUsername}`)).toBeVisible()
   await page.getByLabel('Username', { exact: true }).fill(originalUsername)
   await page.getByRole('button', { name: 'Save settings' }).click()
   // Wait for the server action and sidebar revalidation; never navigate during a save.
