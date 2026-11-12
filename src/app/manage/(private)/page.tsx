@@ -21,7 +21,7 @@ import { SessionList } from "@/components/session-list";
 export default async function Manage({ searchParams }: { searchParams: Promise<{ spotify?: string; spotify_error?: string }> }) {
   const params = await searchParams;
   const owner = await ownerPage();
-  const [subjects, sessions, recent, timer, goal, settings, spotifyLinks, spotifyAccount] =
+  const [subjects, sessions, recent, timer, goal, settings, spotifyLinks, spotifyAccount, spotifyLikedMirror] =
     await Promise.all([
       prisma.subject.findMany({
         where: { ownerId: owner.id },
@@ -53,6 +53,15 @@ export default async function Manage({ searchParams }: { searchParams: Promise<{
       prisma.spotifyAccount.findUnique({
         where: { ownerId: owner.id },
         select: { displayName: true, avatarUrl: true, profileUrl: true },
+      }),
+      prisma.spotifyLikedMirror.findUnique({
+        where: { ownerId: owner.id },
+        select: {
+          spotifyPlaylistId: true,
+          importedCount: true,
+          totalCount: true,
+          completedAt: true,
+        },
       }),
     ]);
   const zone = settings?.timezone ?? "Africa/Casablanca";
@@ -149,6 +158,7 @@ export default async function Manage({ searchParams }: { searchParams: Promise<{
           selectedId={settings?.selectedSpotifyLinkId ?? null}
           visible={settings?.spotifyWidgetVisible ?? true}
           account={spotifyAccount}
+          likedPlaylist={spotifyLikedMirror && { playlistId: spotifyLikedMirror.spotifyPlaylistId, importedCount: spotifyLikedMirror.importedCount, totalCount: spotifyLikedMirror.totalCount, done: Boolean(spotifyLikedMirror.completedAt) }}
           workspaceId={owner.id}
           accountConnectEnabled={Boolean(process.env.SPOTIFY_CLIENT_ID)}
           connectionNotice={params.spotify === 'connected' ? 'connected' : params.spotify_error}

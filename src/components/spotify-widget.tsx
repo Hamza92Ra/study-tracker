@@ -10,12 +10,16 @@ import {
   disconnectSpotifyAccount,
   loadSpotifyAccountPlaylists,
   loadSpotifyLikedSongs,
+  createLikedSongsPlaylist,
+  syncLikedSongsPlaylistBatch,
+  refreshLikedSongsPlaylist,
 } from '@/lib/spotify-account-actions'
 
 type SavedLink = { id: string; kind: string; spotifyId: string; label: string }
 type Profile = { displayName: string; avatarUrl: string | null; profileUrl: string | null }
 type Playlist = { id: string; name: string; url: string }
 type LikedTrack = { id: string; name: string; artist: string; url: string }
+type LikedPlaylistProgress = { playlistId: string; importedCount: number; totalCount: number; done: boolean }
 
 const noticeMessages: Record<string, string> = {
   connected: 'Spotify account connected successfully.',
@@ -30,7 +34,7 @@ const noticeMessages: Record<string, string> = {
 }
 
 export function SpotifyWidget({
-  links, selectedId, visible, account, accountConnectEnabled, connectionNotice, workspaceId,
+  links, selectedId, visible, account, accountConnectEnabled, connectionNotice, workspaceId, likedPlaylist,
 }: {
   links: SavedLink[]
   selectedId: string | null
@@ -39,6 +43,7 @@ export function SpotifyWidget({
   accountConnectEnabled: boolean
   connectionNotice?: string
   workspaceId: string
+  likedPlaylist: LikedPlaylistProgress | null
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -50,6 +55,9 @@ export function SpotifyWidget({
   const [playlistError, setPlaylistError] = useState('')
   const [likedError, setLikedError] = useState('')
   const [accountCollapsed, setAccountCollapsed] = useState(false)
+  const [fullPlaylist, setFullPlaylist] = useState<LikedPlaylistProgress | null>(likedPlaylist)
+  const [importingFull, setImportingFull] = useState(false)
+  const [importError, setImportError] = useState('')
   const selected = links.find(link => link.id === selectedId) ?? links[0]
 
   useEffect(() => {
@@ -110,6 +118,77 @@ export function SpotifyWidget({
         setLikedError('Could not load your Liked Songs. Please try again.')
       }
     })
+  }
+
+  async function copyRemainingLikedSongs() {
+    // Each server request copies only one batch; progress is stored in PostgreSQL.
+    // Leaving the page or encountering a Spotify rate limit does not lose progress.
+    for (let batch = 0; batch < 5000; batch++) {
+      const result = await syncLikedSongsPlaylistBatch()
+      if (!result.ok) {
+        setImportError(result.error)
+        return
+      }
+      setFullPlaylist(result.progress)
+      if (result.progress.done) {
+        toast.success('Your complete Liked Songs playlist is ready!')
+        router.refresh()
+        return
+      }
+      // Be considerate of the Spotify Web API's shared developer quota.
+      await new Promise(resolve => setTimeout(resolve, 180))
+    }
+    setImportError('This library is unusually large. Click Resume import to continue.')
+  }
+
+  async function createOrResumeFullPlaylist() {
+    if (importingFull) return
+    if (!fullPlaylist &&
+      !window.confirm('Create a private Spotify playlist containing all your Liked Songs? Your original Liked Songs will not change.')) return
+    setImportingFull(true)
+    setImportError('')
+    try {
+      if (!fullPlaylist) {
+        const result = await createLikedSongsPlaylist()
+        if (!result.ok) {
+          setImportError(result.error)
+          return
+        }
+        setFullPlaylist(result.progress)
+        router.refresh()
+        if (result.progress.done) return
+      }
+      await copyRemainingLikedSongs()
+    } catch {
+      setImportError('The import stopped. You can resume it without creating another playlist.')
+    } finally {
+      setImportingFull(false)
+    }
+  }
+
+  async function rebuildFullPlaylist() {
+    if (importingFull || !fullPlaylist) return
+    if (!window.confirm('Update your Study Ledger Liked Songs playlist to match your current saved tracks? This replaces the content of the generated playlist only.')) return
+    setImportingFull(true)
+    setImportError('')
+    try {
+      const result = await refreshLikedSongsPlaylist()
+      if (!result.ok) {
+        setImportError(result.error)
+        return
+      }
+      setFullPlaylist(result.progress)
+      if (result.progress.done) {
+        toast.success('Liked Songs playlist updated')
+        router.refresh()
+      } else {
+        await copyRemainingLikedSongs()
+      }
+    } catch {
+      setImportError('Could not update the playlist. You can resume the import.')
+    } finally {
+      setImportingFull(false)
+    }
   }
 
   function disconnect() {
@@ -208,14 +287,27 @@ export function SpotifyWidget({
                       <span className="spotify-liked-library-title">
                         <Heart size={18} aria-hidden="true" />
                         <span>
-                          <strong>Liked Songs</strong>
-                          <small>Saved tracks from your Spotify account</small>
+                          <strong>Liked Songs — full playlist</strong>
+                          <small>{fullPlaylist
+                            ? fullPlaylist.done
+                              ? fullPlaylist.importedCount + ' songs in one playlist'
+                              : 'Importing ' + fullPlaylist.importedCount + ' of ' + fullPlaylist.totalCount + ' liked tracks'
+                            : 'Play all your Liked Songs together as a playlist'}</small>
                         </span>
                       </span>
-                      <button className="button button-secondary" type="button" disabled={pending}
-                        aria-label="Browse Liked Songs" onClick={() => loadLikedSongs(0)}>
-                        Browse songs
-                      </button>
+                      <div className="spotify-full-playlist-actions">
+                        <button className="button button-primary" type="button" disabled={pending || importingFull}
+                          aria-label={fullPlaylist ? (fullPlaylist.done ? 'Update full Liked Songs playlist' : 'Resume full Liked Songs import') : 'Create full Liked Songs playlist'}
+                          onClick={() => fullPlaylist?.done ? void rebuildFullPlaylist() : void createOrResumeFullPlaylist()}>
+                          {importingFull ? 'Importing…' : fullPlaylist?.done ? 'Update playlist' : fullPlaylist ? 'Resume import' : 'Create playlist'}
+                        </button>
+                        {fullPlaylist && (
+                          <a className="button button-secondary" target="_blank" rel="noopener noreferrer"
+                            href={'https://open.spotify.com/playlist/' + fullPlaylist.playlistId}>
+                            Open in Spotify
+                          </a>
+                        )}
+                      </div>
                     </li>
                     {myPlaylists?.map(playlist => (
                       <li key={playlist.id}>
@@ -227,6 +319,12 @@ export function SpotifyWidget({
                       </li>
                     ))}
                   </ul>
+                  {importError && <p className="form-error spotify-import-error" role="alert">
+                    {importError}
+                    {importError.includes('Reconnect Spotify') && (
+                      <> <a href="/api/spotify/connect">Reconnect Spotify to grant playlist permission</a></>
+                    )}
+                  </p>}
                   {myPlaylists === null ? (
                     <p className="panel-sub">Click Load my playlists to see your other playlists.</p>
                   ) : myPlaylists.length === 0 ? (

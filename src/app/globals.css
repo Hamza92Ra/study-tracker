@@ -147,3 +147,10 @@
 .spotify-liked-library-title small{font-size:11px;color:var(--muted);line-height:1.4}
 .spotify-liked-library-entry>.button{flex:none}
 @media(max-width:425px){.spotify-liked-library-entry{flex-wrap:wrap}.spotify-liked-library-entry>.button{margin-left:auto}}
+
+/* Private, resumable full-library playlist copy */
+.spotify-full-playlist-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;flex:none}
+.spotify-full-playlist-actions .button{min-height:40px;white-space:nowrap}
+.spotify-import-error{margin-top:8px!important}
+.spotify-import-error a{font-weight:700;text-decoration:underline}
+@media(max-width:670px){.spotify-liked-library-entry{flex-wrap:wrap;align-items:flex-start}.spotify-full-playlist-actions{width:100%;justify-content:flex-start}.spotify-full-playlist-actions .button{flex:1}}
