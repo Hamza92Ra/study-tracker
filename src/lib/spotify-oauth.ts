@@ -1,4 +1,3 @@
-import 'server-only'
 import { createHash, createHmac, randomBytes, timingSafeEqual, createCipheriv, createDecipheriv } from 'node:crypto'
 import { z } from 'zod'
 
