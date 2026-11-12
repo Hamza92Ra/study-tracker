@@ -1,0 +1,74 @@
+name: Study Ledger isolated database checks
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: study-ledger-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-postgres:
+    name: PostgreSQL migrations, security tests and browser flows
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci_only_local_postgres
+          POSTGRES_DB: study_ledger_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d study_ledger_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 15
+    env:
+      # Dedicated disposable service container. Never use Supabase or Vercel production secrets.
+      DATABASE_URL: postgresql://postgres:ci_only_local_postgres@127.0.0.1:5432/study_ledger_ci?schema=public
+      DIRECT_URL: postgresql://postgres:ci_only_local_postgres@127.0.0.1:5432/study_ledger_ci?schema=public
+      NEXTAUTH_SECRET: ci-test-only-not-a-real-secret-943b819c83d14a52a1287df1
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      E2E_OWNER_USERNAME: ci_owner
+      E2E_OWNER_PASSWORD: StudyLedgerCiOnly-2026-Password!
+      E2E_MEMBER_USERNAME: ci_member
+      E2E_MEMBER_PASSWORD: StudyLedgerCiOnly-2026-Password!
+      RUN_DB_TESTS: "1"
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+      - name: Install Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Apply all three Prisma migrations to disposable PostgreSQL
+        run: |
+          npx prisma migrate deploy
+          npx prisma generate
+      - name: Type checking
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit and isolated database integration tests
+        run: npm run test
+      - name: Create CI-only accounts and study records
+        run: npx tsx scripts/ci-seed.ts
+      - name: Production build on migrated test database
+        run: npm run build
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Authenticated browser tests against disposable database
+        run: npx playwright test --workers=1

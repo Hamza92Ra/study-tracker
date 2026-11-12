@@ -1,8 +1,115 @@
-import { ownerPage } from '@/lib/owner-page'
-import { prisma } from '@/lib/db'
-import { activityPage } from '@/lib/data'
-import { ManageHeader } from '@/components/manage-header'
-import { SessionManager } from '@/components/session-manager'
-import Link from 'next/link'
-type Params={page?:string;search?:string;subject?:string;from?:string;to?:string}
-export default async function SessionsPage({searchParams}:{searchParams:Promise<Params>}){const owner=await ownerPage();const q=await searchParams;const settings=await prisma.userSettings.findUnique({where:{ownerId:owner.id}});const zone=settings?.timezone??'Africa/Casablanca';const [subjects,result]=await Promise.all([prisma.subject.findMany({where:{ownerId:owner.id},orderBy:{name:'asc'}}),activityPage(owner.id,zone,{...q,page:Number(q.page)||1,pageSize:20},false)]);return <><ManageHeader eyebrow="Study log" title="Sessions"/><form className="card filter-bar" action="/manage/sessions"><div className="field"><label htmlFor="manage-search">Search title</label><input id="manage-search" className="input" name="search" defaultValue={q.search||''} placeholder="Search sessions"/></div><div className="field"><label htmlFor="manage-subject">Subject</label><select id="manage-subject" name="subject" defaultValue={q.subject||''}><option value="">All subjects</option>{subjects.map(s=><option key={s.id} value={s.slug}>{s.name}</option>)}</select></div><div className="field"><label htmlFor="manage-from">From</label><input id="manage-from" className="input" type="date" name="from" defaultValue={q.from||''}/></div><div className="field"><label htmlFor="manage-to">To</label><input id="manage-to" className="input" type="date" name="to" defaultValue={q.to||''}/></div><button className="button button-secondary">Filter</button><Link className="button button-ghost" href="/manage/sessions">Reset</Link></form><SessionManager sessions={result.items} subjects={subjects} zone={zone}/><div className="pagination"><span>{result.total} sessions · Page {result.page} of {result.pages}</span><div className="flex gap-2">{result.page>1&&<Link href={`/manage/sessions?page=${result.page-1}`}>Previous</Link>}{result.page<result.pages&&<Link href={`/manage/sessions?page=${result.page+1}`}>Next</Link>}</div></div></>}
+import { ownerPage } from "@/lib/owner-page";
+import { prisma } from "@/lib/db";
+import { activityPage } from "@/lib/data";
+import { ManageHeader } from "@/components/manage-header";
+import { SessionManager } from "@/components/session-manager";
+import Link from "next/link";
+type Params = {
+  page?: string;
+  search?: string;
+  subject?: string;
+  from?: string;
+  to?: string;
+};
+export default async function SessionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Params>;
+}) {
+  const owner = await ownerPage();
+  const q = await searchParams;
+  const settings = await prisma.userSettings.findUnique({
+    where: { ownerId: owner.id },
+    select: { timezone: true },
+  });
+  const zone = settings?.timezone ?? "Africa/Casablanca";
+  const pageUrl = (page: number) => {
+    const params = new URLSearchParams();
+    for (const key of ["search", "subject", "from", "to"] as const)
+      if (q[key]) params.set(key, q[key]!);
+    params.set("page", String(page));
+    return `/manage/sessions?${params}`;
+  };
+  const [subjects, result] = await Promise.all([
+    prisma.subject.findMany({
+      where: { ownerId: owner.id },
+      orderBy: { name: "asc" },
+    }),
+    activityPage(
+      owner.id,
+      zone,
+      { ...q, page: Number(q.page) || 1, pageSize: 20 },
+      false,
+    ),
+  ]);
+  return (
+    <>
+      <ManageHeader eyebrow="Study log" title="Sessions" />
+      <form className="card filter-bar" action="/manage/sessions">
+        <div className="field">
+          <label htmlFor="manage-search">Search title</label>
+          <input
+            id="manage-search"
+            className="input"
+            name="search"
+            defaultValue={q.search || ""}
+            placeholder="Search sessions"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="manage-subject">Subject</label>
+          <select
+            id="manage-subject"
+            name="subject"
+            defaultValue={q.subject || ""}
+          >
+            <option value="">All subjects</option>
+            {subjects.map((s) => (
+              <option key={s.id} value={s.slug}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="manage-from">From</label>
+          <input
+            id="manage-from"
+            className="input"
+            type="date"
+            name="from"
+            defaultValue={q.from || ""}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="manage-to">To</label>
+          <input
+            id="manage-to"
+            className="input"
+            type="date"
+            name="to"
+            defaultValue={q.to || ""}
+          />
+        </div>
+        <button className="button button-secondary">Filter</button>
+        <Link className="button button-ghost" href="/manage/sessions">
+          Reset
+        </Link>
+      </form>
+      <SessionManager sessions={result.items} subjects={subjects} zone={zone} />
+      <div className="pagination">
+        <span>
+          {result.total} sessions · Page {result.page} of {result.pages}
+        </span>
+        <div className="flex gap-2">
+          {result.page > 1 && (
+            <Link href={pageUrl(result.page - 1)}>Previous</Link>
+          )}
+          {result.page < result.pages && (
+            <Link href={pageUrl(result.page + 1)}>Next</Link>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}

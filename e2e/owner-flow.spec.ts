@@ -16,6 +16,29 @@ test('owner manages a subject and published study session', async ({ page }) => 
   await page.getByRole('button', { name: 'Sign in' }).click()
   await page.waitForURL(/\/manage$/, { timeout: 45000 })
   await expect(page.getByRole('heading', { name: /Good to see you/ })).toBeVisible()
+  await page.goto('/manage/settings')
+  // React Hook Form initializes this field during hydration, not at initial navigation.
+  await expect(page.getByLabel('Username', { exact: true })).toHaveValue(process.env.E2E_OWNER_USERNAME!)
+  const originalUsername = await page.getByLabel('Username', { exact: true }).inputValue()
+  const changedUsername = `e2e_${suffix}`
+  await page.getByLabel('Username', { exact: true }).fill(changedUsername)
+  await page.getByLabel('Profile visibility').selectOption('public')
+  await page.getByRole('button', { name: 'Save settings' }).click()
+  // Sidebar href only updates after saveSettings commits and router.refresh runs.
+  await expect(page.getByRole('link', { name: 'View public site' })).toHaveAttribute('href', `/u/${changedUsername}`)
+  await expect(page.getByText(`Your public URL: /u/${changedUsername}`)).toBeVisible()
+  await page.getByLabel('Username', { exact: true }).fill(originalUsername)
+  await page.getByRole('button', { name: 'Save settings' }).click()
+  // Wait for the server action and sidebar revalidation; never navigate during a save.
+  await expect(page.getByRole('link', { name: 'View public site' })).toHaveAttribute('href', `/u/${originalUsername}`)
+  const publicUrl = `/u/${originalUsername}`
+
+  await page.goto('/manage')
+  await page.getByLabel('Name', { exact: true }).fill(`Focus ${suffix}`)
+  await page.getByLabel('Spotify link').fill('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M')
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(page.getByTitle(`Spotify playlist: Focus ${suffix}`)).toBeVisible()
+  await page.getByRole('button', { name: 'Remove selected Spotify link' }).click()
 
   await page.goto('/manage/subjects')
   await page.getByRole('button', { name: 'New subject' }).click()
@@ -35,9 +58,12 @@ test('owner manages a subject and published study session', async ({ page }) => 
   await expect(page.getByRole('dialog')).toBeHidden()
   await expect(page.getByText(session)).toBeVisible()
 
-  await page.goto('/')
+  await page.goto(publicUrl)
+  if (!await page.getByText(session).count()) {
+    console.info('Public overview check:', (await page.locator('body').innerText()).slice(0, 1500))
+  }
   await expect(page.getByText(session)).toBeVisible()
-  await page.goto('/activity')
+  await page.goto(`${publicUrl}/activity`)
   await expect(page.getByText(session)).toBeVisible()
 
   await page.goto('/manage/sessions')

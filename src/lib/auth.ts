@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcryptjs'
 import { createHash } from 'crypto'
 import { getServerSession } from 'next-auth'
+import { cache } from 'react'
 import { prisma } from './db'
 
 const WINDOW_MS = 15 * 60 * 1000
@@ -84,13 +85,13 @@ export const authHandler = NextAuth(authOptions)
 
 // Always re-read account status and credential version from Postgres.
 // Deactivation and password reset invalidate already-issued JWT sessions.
-export async function currentAccount() {
+export const currentAccount = cache(async function currentAccount() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) return null
   const account = await prisma.user.findUnique({ where: { id: session.user.id } })
   if (!account || !account.isActive || account.credentialVersion !== session.user.credentialVersion) return null
   return account
-}
+})
 export async function requireOwner(options: { allowPasswordChange?: boolean } = {}) {
   const account = await currentAccount()
   if (!account) throw new Error('Unauthorized')

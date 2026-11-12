@@ -1,7 +1,9 @@
 import { z } from 'zod'
 
+export const usernameSchema = z.string().trim().toLowerCase().regex(/^[a-z0-9_-]{3,32}$/, 'Use 3–32 lowercase letters, numbers, _ or -.')
+
 export const createMemberSchema = z.object({
-  username: z.string().trim().toLowerCase().regex(/^[a-z0-9_-]{3,32}$/, 'Use 3–32 lowercase letters, numbers, _ or -.'),
+  username: usernameSchema,
   email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
   displayName: z.string().trim().min(1, 'Display name is required').max(100),
 })

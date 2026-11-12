@@ -9,7 +9,7 @@ export function Brand({ href = '/' }: BrandProps) {
       <span className="brand-mark brand-mark-site" aria-hidden="true">
         {/* The asset is the approved Study Ledger emblem. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/study-ledger-logo.webp" width={34} height={34} alt="" />
+        <img src="/study-ledger-logo.webp" width={46} height={46} alt="" />
       </span>
       <span>STUDY<span className="brand-light">/LEDGER</span></span>
     </Link>
