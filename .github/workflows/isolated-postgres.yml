@@ -54,7 +54,7 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Apply all three Prisma migrations to disposable PostgreSQL
+      - name: Apply all Prisma migrations to disposable PostgreSQL
         run: |
           npx prisma migrate deploy
           npx prisma generate

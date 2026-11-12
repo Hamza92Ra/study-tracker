@@ -24,6 +24,8 @@ test('member can use their own Spotify and public profile but cannot access Peop
   await page.waitForURL(/\/manage$/, { timeout: 45000 })
   await expect(page.getByRole('heading', { name: /Good to see you/ })).toBeVisible()
   await expect(page.getByRole('link', { name: 'View public site' })).toHaveAttribute('href', '/u/ci_member')
+  await expect(page.getByText('Connect your Spotify profile')).toBeVisible()
+  await expect(page.getByText('Account linking requires Spotify app setup')).toBeVisible()
 
   await page.getByLabel('Name', { exact: true }).fill('CI member soundtrack')
   await page.getByLabel('Spotify link').fill('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M')
