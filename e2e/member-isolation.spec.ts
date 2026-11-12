@@ -11,9 +11,9 @@ test('public profiles expose only explicitly published sessions and respect priv
   await expect(page.getByText('Published CI Member Session').first()).toBeVisible()
   await expect(page.getByText('Hidden CI Member Session')).toHaveCount(0)
   await page.goto('/u/ci_private')
-  await expect(page.locator('body')).toContainText('404')
+  await expect(page.locator('body')).toContainText('Page not found')
   await page.goto('/u/ci_private/activity')
-  await expect(page.locator('body')).toContainText('404')
+  await expect(page.locator('body')).toContainText('Page not found')
 })
 
 test('member can use their own Spotify and public profile but cannot access People', async ({ page }) => {
@@ -33,7 +33,7 @@ test('member can use their own Spotify and public profile but cannot access Peop
   await expect(page.getByTitle('Spotify playlist: CI member soundtrack')).toHaveCount(0)
 
   await page.goto('/manage/admin')
-  await expect(page.locator('body')).toContainText('404')
+  await expect(page.locator('body')).toContainText('Page not found')
 
   await page.goto('/manage/settings')
   const updatedName = 'ci_member_renamed'
@@ -44,5 +44,5 @@ test('member can use their own Spotify and public profile but cannot access Peop
   await page.goto('/u/ci_member_renamed')
   await expect(page.getByText('Published CI Member Session').first()).toBeVisible()
   await page.goto('/u/ci_member')
-  await expect(page.locator('body')).toContainText('404')
+  await expect(page.locator('body')).toContainText('Page not found')
 })

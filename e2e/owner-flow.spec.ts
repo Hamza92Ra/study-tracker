@@ -26,6 +26,8 @@ test('owner manages a subject and published study session', async ({ page }) => 
   await expect(page.getByRole('link', { name: 'View public site' })).toHaveAttribute('href', `/u/${changedUsername}`)
   await page.getByLabel('Username', { exact: true }).fill(originalUsername)
   await page.getByRole('button', { name: 'Save settings' }).click()
+  // Wait for the server action and sidebar revalidation; never navigate during a save.
+  await expect(page.getByRole('link', { name: 'View public site' })).toHaveAttribute('href', `/u/${originalUsername}`)
   const publicUrl = `/u/${originalUsername}`
 
   await page.goto('/manage')
@@ -54,6 +56,9 @@ test('owner manages a subject and published study session', async ({ page }) => 
   await expect(page.getByText(session)).toBeVisible()
 
   await page.goto(publicUrl)
+  if (!await page.getByText(session).count()) {
+    console.info('Public overview check:', (await page.locator('body').innerText()).slice(0, 1500))
+  }
   await expect(page.getByText(session)).toBeVisible()
   await page.goto(`${publicUrl}/activity`)
   await expect(page.getByText(session)).toBeVisible()
