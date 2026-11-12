@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireOwner } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import {
-  decryptSpotifyToken, encryptSpotifyToken, fetchSpotifyPlaylists, fetchSpotifyLikedSongs,
+  decryptSpotifyToken, encryptSpotifyToken, fetchSpotifyPlaylists, fetchSpotifyLikedSongs, fetchSpotifyNowPlaying,
   requestSpotifyToken, spotifyClientId,
 } from '@/lib/spotify-oauth'
 
@@ -76,5 +76,24 @@ export async function loadSpotifyLikedSongs(offset: number = 0) {
       return { ok: false as const, error: error.message }
     }
     return { ok: false as const, error: 'Could not load Liked Songs. Please try reconnecting Spotify.' }
+  }
+}
+
+
+/** Only returns the authenticated workspace owner's private playback metadata. */
+export async function loadSpotifyNowPlaying() {
+  try {
+    const owner = await requireOwner()
+    const token = await validSpotifyAccessToken(owner.id)
+    const playback = await fetchSpotifyNowPlaying(token)
+    return { ok: true as const, playback }
+  } catch (error) {
+    if (error instanceof Error && /Reconnect Spotify/.test(error.message)) {
+      return { ok: false as const, error: error.message, reconnect: true as const }
+    }
+    if (error instanceof Error && /Spotify is temporarily limiting/.test(error.message)) {
+      return { ok: false as const, error: error.message, reconnect: false as const }
+    }
+    return { ok: false as const, error: 'Could not check Spotify playback right now.', reconnect: false as const }
   }
 }

@@ -1,7 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual, createCipheriv, createDecipheriv } from 'node:crypto'
 import { z } from 'zod'
 
-export const SPOTIFY_SCOPES = 'user-read-private playlist-read-private user-library-read'
+export const SPOTIFY_SCOPES = 'user-read-private playlist-read-private user-library-read user-read-currently-playing'
 
 const authPayload = z.object({
   ownerId: z.string().min(1).max(128),
@@ -218,4 +218,58 @@ export async function fetchSpotifyLikedSongs(accessToken: string, offset = 0) {
     ? offset + limit
     : (page.total !== undefined && offset + limit < page.total ? offset + limit : null)
   return { tracks, nextOffset: nextOffset !== null && nextOffset <= 10000 ? nextOffset : null }
+}
+
+
+// Read-only playback metadata, never a playback controller or audio proxy.
+const nowPlayingItemSchema = z.object({
+  type: z.string().optional(),
+  name: z.string(),
+  duration_ms: z.number().int().nonnegative().optional(),
+  external_urls: z.object({ spotify: z.string().optional() }).optional(),
+  artists: z.array(z.object({ name: z.string() })).optional(),
+  show: z.object({ name: z.string() }).optional(),
+  album: z.object({
+    images: z.array(z.object({ url: z.string() })).optional(),
+  }).optional(),
+  images: z.array(z.object({ url: z.string() })).optional(),
+})
+const nowPlayingResponseSchema = z.object({
+  is_playing: z.boolean(),
+  progress_ms: z.number().int().nonnegative().nullable().optional(),
+  currently_playing_type: z.string().optional(),
+  item: nowPlayingItemSchema.nullable().optional(),
+})
+
+export async function fetchSpotifyNowPlaying(accessToken: string) {
+  const response = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+    headers: { Authorization: 'Bearer ' + accessToken },
+    cache: 'no-store',
+    signal: AbortSignal.timeout(10_000),
+  })
+  if (response.status === 204) return null
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('Reconnect Spotify to allow Now Playing access.')
+  }
+  if (response.status === 429) {
+    throw new Error('Spotify is temporarily limiting playback updates. Try again shortly.')
+  }
+  if (!response.ok) throw new Error('Could not read playback from Spotify.')
+  const state = nowPlayingResponseSchema.parse(await response.json())
+  const item = state.item
+  if (!item || !['track', 'episode'].includes(item.type || '') ||
+    state.currently_playing_type === 'ad') return null
+  const images = item.type === 'episode' ? item.images : item.album?.images
+  const image = images?.find(i => validHttpsUrl(i.url, ['i.scdn.co', 'mosaic.scdn.co']))
+  const link = item.external_urls?.spotify
+  return {
+    kind: item.type as 'track' | 'episode',
+    name: item.name.slice(0, 160),
+    artist: (item.artists?.map(a => a.name).join(', ') || item.show?.name || '').slice(0, 160),
+    artworkUrl: image?.url.slice(0, 500) ?? null,
+    spotifyUrl: link && validHttpsUrl(link, ['open.spotify.com']) ? link.slice(0, 500) : null,
+    isPlaying: state.is_playing,
+    progressMs: Math.max(0, state.progress_ms ?? 0),
+    durationMs: Math.max(0, item.duration_ms ?? 0),
+  }
 }

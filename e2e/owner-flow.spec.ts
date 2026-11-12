@@ -35,6 +35,9 @@ test('owner manages a subject and published study session', async ({ page }) => 
 
   await page.goto('/manage')
   await expect(page.getByText('CI Spotify Tester')).toBeVisible()
+  // Private Spotify status must be visible independently of account details.
+  await expect(page.getByLabel('Spotify Now Playing', { exact: true })).toBeVisible()
+  await expect(page.getByText('NOW PLAYING ON SPOTIFY')).toBeVisible()
   await page.getByRole('button', { name: 'Hide details' }).click()
   await expect(page.getByRole('button', { name: 'Show details' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Load Liked Songs' })).toHaveCount(0)

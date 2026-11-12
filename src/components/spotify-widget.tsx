@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Music2, Plus, Trash2, Eye, EyeOff, Link2, ExternalLink, RefreshCcw, Unplug, ChevronDown, ChevronUp, Heart } from 'lucide-react'
 import { toast } from 'sonner'
+import { SpotifyNowPlaying } from '@/components/spotify-now-playing'
 import { addSpotifyLink, removeSpotifyLink, selectSpotifyLink, setSpotifyVisible } from '@/lib/spotify-actions'
 import {
   disconnectSpotifyAccount,
@@ -152,6 +153,8 @@ export function SpotifyWidget({
       {connectionNotice && noticeMessages[connectionNotice] && (
         <p className="spotify-connection-notice" role="status">{noticeMessages[connectionNotice]}</p>
       )}
+
+      {account && <SpotifyNowPlaying />}
 
       <div className="spotify-account-panel">
         {account ? (
