@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Music2, Plus, Trash2, Eye, EyeOff, Link2, ExternalLink, RefreshCcw, Unplug, ChevronDown, ChevronUp, Heart } from 'lucide-react'
 import { toast } from 'sonner'
@@ -50,6 +50,17 @@ export function SpotifyWidget({
   const [likedError, setLikedError] = useState('')
   const [accountCollapsed, setAccountCollapsed] = useState(false)
   const selected = links.find(link => link.id === selectedId) ?? links[0]
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem('study-ledger-spotify-details-' + workspaceId)
+      // Restore this workspace's choice after client hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAccountCollapsed(stored === 'collapsed')
+    } catch {
+      // Storage may be disabled; the button still works for this visit.
+    }
+  }, [workspaceId])
 
   function run(
     action: () => Promise<{ ok: true } | { ok: false; error: string }>,
@@ -110,15 +121,13 @@ export function SpotifyWidget({
   // Keep the library panel independent from the player. This deliberately uses
   // a user-scoped key so switching Study Ledger accounts won't mix preferences.
   function toggleAccount() {
-    setAccountCollapsed(previous => {
-      const next = !previous
-      try {
-        window.localStorage.setItem('study-ledger-spotify-details-' + workspaceId, next ? 'collapsed' : 'expanded')
-      } catch {
-        // Storage may be unavailable in private-browsing mode.
-      }
-      return next
-    })
+    const next = !accountCollapsed
+    setAccountCollapsed(next)
+    try {
+      window.localStorage.setItem('study-ledger-spotify-details-' + workspaceId, next ? 'collapsed' : 'expanded')
+    } catch {
+      // Storage may be unavailable in private-browsing mode.
+    }
   }
 
   return (

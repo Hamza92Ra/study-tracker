@@ -4,6 +4,7 @@
  */
 import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
+import { encryptSpotifyToken } from '../src/lib/spotify-oauth'
 
 const url = process.env.DATABASE_URL
 if (!url || !['localhost', '127.0.0.1'].includes(new URL(url).hostname)) {
@@ -25,6 +26,17 @@ async function main() {
       role: 'admin', passwordHash,
       settings: { create: { timezone: 'Africa/Casablanca', profileVisibility: 'public' } },
       goal: { create: { dailyTargetMinutes: 180 } },
+    },
+  })
+  // A fake identity verifies the account panel without contacting Spotify.
+  await prisma.spotifyAccount.create({
+    data: {
+      ownerId: admin.id,
+      spotifyAccountId: 'ci-spotify-user',
+      displayName: 'CI Spotify Tester',
+      encryptedAccessToken: encryptSpotifyToken('ci-only-no-network-access-token'),
+      encryptedRefreshToken: encryptSpotifyToken('ci-only-no-network-refresh-token'),
+      expiresAt: new Date(Date.now() + 3600_000),
     },
   })
   const member = await prisma.user.create({
