@@ -27,3 +27,21 @@
 .avatar-url-option[open] .input{margin-top:10px}
 .avatar-url-option[open] .avatar-picker-note{margin-top:7px}
 @media(max-width:740px){.avatar-picker{align-items:flex-start}.avatar-picker-preview{width:65px;height:65px}}
+
+/* Members management */
+.admin-people-stack{display:grid;gap:20px}
+.admin-people-title{font:normal 25px/1.2 Georgia,serif;letter-spacing:-.035em;margin:0 0 7px}
+.admin-member-name{display:block;font-size:13px;font-weight:750;color:var(--text)}
+.admin-member-sub{display:block;font-size:11px;color:var(--muted);padding-top:4px;overflow-wrap:anywhere}
+.admin-member-buttons{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.admin-member-buttons .button{min-height:36px;padding:8px 10px;white-space:nowrap}
+.admin-member-active{background:var(--accent-soft);color:var(--accent)}
+.admin-member-suspended{background:#ffe7e2;color:#942f25}
+.admin-credentials{border-color:var(--accent)}
+.admin-credentials p{color:var(--muted);font-size:12px;line-height:1.7}
+.admin-credentials-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.admin-credential-value{display:block;padding:14px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;overflow-wrap:anywhere;font-size:13px}
+.admin-password-form{max-width:600px;display:grid;gap:18px}
+.admin-password-form .field{flex:none}
+.admin-security-link{color:var(--accent);text-decoration:underline;text-underline-offset:3px;font-weight:700}
+@media(max-width:740px){.admin-member-buttons{flex-direction:column;align-items:stretch}.admin-credentials-row{align-items:stretch}}
