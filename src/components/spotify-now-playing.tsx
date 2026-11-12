@@ -130,7 +130,7 @@ export function SpotifyNowPlaying() {
             ? 'Checking your Spotify playback…'
             : state.status === 'idle'
               ? 'Nothing playing on Spotify right now. Start a song in Spotify to see it here.'
-              : state.message}
+              : state.status === 'error' ? state.message : ''}
           {state.status === 'error' && state.reconnect && (
             <> <a href="/api/spotify/connect">Reconnect Spotify</a> to grant playback access.</>
           )}
