@@ -1,7 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual, createCipheriv, createDecipheriv } from 'node:crypto'
 import { z } from 'zod'
 
-export const SPOTIFY_SCOPES = 'user-read-private playlist-read-private user-library-read user-read-currently-playing'
+export const SPOTIFY_SCOPES = 'user-read-private playlist-read-private user-library-read user-read-currently-playing playlist-modify-private'
 
 const authPayload = z.object({
   ownerId: z.string().min(1).max(128),
