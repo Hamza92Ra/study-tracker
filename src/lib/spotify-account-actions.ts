@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireOwner } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import {
-  decryptSpotifyToken, encryptSpotifyToken, fetchSpotifyPlaylists,
+  decryptSpotifyToken, encryptSpotifyToken, fetchSpotifyPlaylists, fetchSpotifyLikedSongs,
   requestSpotifyToken, spotifyClientId,
 } from '@/lib/spotify-oauth'
 
@@ -58,5 +58,23 @@ export async function loadSpotifyAccountPlaylists() {
       return { ok: false as const, error: error.message }
     }
     return { ok: false as const, error: 'Could not load playlists. Try reconnecting Spotify.' }
+  }
+}
+
+
+export async function loadSpotifyLikedSongs(offset: number = 0) {
+  try {
+    const owner = await requireOwner()
+    if (!Number.isSafeInteger(offset) || offset < 0 || offset > 10000 || offset % 20 !== 0) {
+      return { ok: false as const, error: 'Invalid Liked Songs page.' }
+    }
+    const token = await validSpotifyAccessToken(owner.id)
+    const page = await fetchSpotifyLikedSongs(token, offset)
+    return { ok: true as const, ...page }
+  } catch (error) {
+    if (error instanceof Error && /Spotify|Liked Songs|Connect/.test(error.message)) {
+      return { ok: false as const, error: error.message }
+    }
+    return { ok: false as const, error: 'Could not load Liked Songs. Please try reconnecting Spotify.' }
   }
 }
