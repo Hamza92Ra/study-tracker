@@ -137,3 +137,13 @@
 .spotify-now-empty a{color:var(--accent);font-weight:700;text-decoration:underline}
 .spotify-now-hint{font-size:10px;color:var(--muted);margin:10px 0 0}
 @media(max-width:460px){.spotify-now-playing{padding:13px}.spotify-now-art{width:56px;height:56px}.spotify-now-meta strong{font-size:14px}}
+
+/* Pin Liked Songs in the same library list as regular Spotify playlists. */
+.spotify-liked-library-entry{background:var(--surface-2)}
+.spotify-liked-library-title{display:flex;align-items:center;gap:11px;min-width:0}
+.spotify-liked-library-title>svg{color:var(--accent);flex:none}
+.spotify-liked-library-title>span{display:flex;flex-direction:column;gap:4px;min-width:0}
+.spotify-liked-library-title strong{font-size:13px}
+.spotify-liked-library-title small{font-size:11px;color:var(--muted);line-height:1.4}
+.spotify-liked-library-entry>.button{flex:none}
+@media(max-width:425px){.spotify-liked-library-entry{flex-wrap:wrap}.spotify-liked-library-entry>.button{margin-left:auto}}

@@ -201,27 +201,40 @@ export function SpotifyWidget({
                   </button>
                 </div>
                 {playlistError && <p className="form-error" role="alert">{playlistError}</p>}
-                {myPlaylists !== null && (
-                  <div className="spotify-library">
-                    <strong>Your Spotify playlists</strong>
-                    {myPlaylists.length === 0 ? (
-                      <p className="panel-sub">No playlists found in the first 20 results.</p>
-                    ) : (
-                      <ul>
-                        {myPlaylists.map(playlist => (
-                          <li key={playlist.id}>
-                            <span>{playlist.name}</span>
-                            <button className="button button-secondary" type="button" disabled={pending}
-                              onClick={() => run(() => addSpotifyLink({ url: playlist.url, label: playlist.name }), 'Playlist saved to your study player')}>
-                              <Plus size={14} /> Add
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                <div className="spotify-library" aria-label="Your Spotify playlists and Liked Songs">
+                  <strong>Your Spotify library</strong>
+                  <ul>
+                    <li className="spotify-liked-library-entry">
+                      <span className="spotify-liked-library-title">
+                        <Heart size={18} aria-hidden="true" />
+                        <span>
+                          <strong>Liked Songs</strong>
+                          <small>Saved tracks from your Spotify account</small>
+                        </span>
+                      </span>
+                      <button className="button button-secondary" type="button" disabled={pending}
+                        aria-label="Browse Liked Songs" onClick={() => loadLikedSongs(0)}>
+                        Browse songs
+                      </button>
+                    </li>
+                    {myPlaylists?.map(playlist => (
+                      <li key={playlist.id}>
+                        <span>{playlist.name}</span>
+                        <button className="button button-secondary" type="button" disabled={pending}
+                          onClick={() => run(() => addSpotifyLink({ url: playlist.url, label: playlist.name }), 'Playlist saved to your study player')}>
+                          <Plus size={14} /> Add
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {myPlaylists === null ? (
+                    <p className="panel-sub">Click Load my playlists to see your other playlists.</p>
+                  ) : myPlaylists.length === 0 ? (
+                    <p className="panel-sub">No other playlists found in the first 20 results.</p>
+                  ) : (
                     <p className="panel-sub">Imported playlists are saved in your private Study Ledger workspace.</p>
-                  </div>
-                )}
+                  )}
+                </div>
                 {likedError && (
                   <div className="spotify-library" role="alert">
                     <p className="form-error">{likedError}</p>
