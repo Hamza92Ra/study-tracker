@@ -2,14 +2,12 @@ import Link from 'next/link'
 import { ArrowUpRight, BookOpen, ChartColumn, Clock3, LayoutDashboard, List, Settings, Users } from 'lucide-react'
 import { ThemeToggle } from './theme-toggle'
 import { Brand } from './brand'
-import { publicOwner } from '@/lib/data'
 
-export async function PublicNav() {
-  const owner = await publicOwner()
+export function PublicNav() {
   return (
     <header className="public-nav">
       <div className="nav-inner">
-        <Brand avatarUrl={owner?.avatarUrl} displayName={owner?.displayName} />
+        <Brand />
         <nav aria-label="Public navigation">
           <Link href="/">Overview</Link>
           <Link href="/activity">Activity</Link>
@@ -45,7 +43,7 @@ export function ManageNav({
 }) {
   return (
     <aside className="manage-nav">
-      <Brand href="/manage" avatarUrl={avatarUrl} displayName={displayName} />
+      <Brand href="/manage" />
       <p className="nav-overline">WORKSPACE</p>
       <nav aria-label="Management navigation">
         {links.map(([href, label, Icon]) => (
@@ -54,6 +52,18 @@ export function ManageNav({
         {isAdmin && <Link href="/manage/admin"><Users size={18} />People</Link>}
       </nav>
       <div className="manage-nav-footer">
+        <div className="manage-account-chip">
+          <span className="manage-account-avatar">
+            {avatarUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={avatarUrl} alt="" referrerPolicy="no-referrer" />
+            ) : (displayName?.slice(0, 1).toUpperCase() || '?')}
+          </span>
+          <span className="manage-account-details">
+            <strong>{displayName || 'My account'}</strong>
+            <small>{isAdmin ? 'Administrator' : 'Member'}</small>
+          </span>
+        </div>
         <ThemeToggle preference={preference} />
         <Link href="/" target="_blank"><List size={16} /> View public site</Link>
       </div>

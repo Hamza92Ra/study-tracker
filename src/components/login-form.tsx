@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { Brand } from './brand'
 
-export function LoginForm({ avatarUrl, displayName }: { avatarUrl?: string | null; displayName?: string | null }) {
+export function LoginForm() {
   const router = useRouter()
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
@@ -29,7 +29,7 @@ export function LoginForm({ avatarUrl, displayName }: { avatarUrl?: string | nul
   return (
     <main className="login-page">
       <div className="card login-box">
-        <Brand avatarUrl={avatarUrl} displayName={displayName} />
+        <Brand />
         <span className="eyebrow">Private workspace</span>
         <h1>Welcome back.</h1>
         <p>Sign in to manage your study time and share your progress.</p>

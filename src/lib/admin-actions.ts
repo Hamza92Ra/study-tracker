@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/db'
 import { requireAdmin, requireOwner } from '@/lib/auth'
 import { changePasswordSchema, createMemberSchema } from '@/lib/account-validation'
+import { assertCanManageAccount, assertCanRevokeAdminAccess } from '@/lib/admin-policy'
 
 const userIdSchema = z.string().min(1).max(128)
 
@@ -20,8 +21,14 @@ function failure(error: unknown): { ok: false; error: string } {
     error.message === 'Unauthorized' ||
     error.message === 'Admin access required' ||
     error.message === 'Account not found.' ||
-    error.message === 'Change your temporary password before using your workspace.'
+    error.message === 'Change your temporary password before using your workspace.' ||
+    error.message === 'At least one active administrator must remain.' ||
+    error.message === 'You cannot change your own role, status or password here.' ||
+    error.message === 'Only active accounts can be promoted to admin.'
   )) return { ok: false, error: error.message }
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+    return { ok: false, error: 'Account was updated simultaneously. Try again.' }
+  }
   return { ok: false, error: 'Unable to complete this action. Try again.' }
 }
 
@@ -65,21 +72,55 @@ export async function createMember(input: unknown) {
   }
 }
 
+// Role and suspension changes run as SERIALIZABLE transactions so concurrent admins
+// cannot both demote/suspend the last remaining active administrator.
+export async function setAccountRole(userId: string, role: 'admin' | 'member') {
+  try {
+    const admin = await requireAdmin()
+    const id = userIdSchema.parse(userId)
+    const nextRole = z.enum(['admin', 'member']).parse(role)
+
+    await prisma.$transaction(async tx => {
+      const target = await tx.user.findUnique({ where: { id } })
+      if (!target) throw new Error('Account not found.')
+      assertCanManageAccount(admin.id, target)
+      if (target.role === nextRole) return
+      if (nextRole === 'admin' && !target.isActive) throw new Error('Only active accounts can be promoted to admin.')
+      if (nextRole === 'member') {
+        const count = await tx.user.count({ where: { role: 'admin', isActive: true } })
+        assertCanRevokeAdminAccess(target, count)
+      }
+      await tx.user.update({
+        where: { id },
+        data: { role: nextRole, credentialVersion: { increment: 1 } },
+      })
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+    refreshUsers()
+    return { ok: true as const }
+  } catch (error) {
+    return failure(error)
+  }
+}
+
 export async function setMemberStatus(userId: string, active: boolean) {
   try {
     const admin = await requireAdmin()
     const id = userIdSchema.parse(userId)
     const enabled = z.boolean().parse(active)
-    if (admin.id === id) throw new Error('Cannot change your own admin account.')
-
-    const result = await prisma.user.updateMany({
-      where: { id, role: 'member' },
-      data: {
-        isActive: enabled,
-        credentialVersion: { increment: 1 },
-      },
-    })
-    if (!result.count) throw new Error('Account not found.')
+    await prisma.$transaction(async tx => {
+      const target = await tx.user.findUnique({ where: { id } })
+      if (!target) throw new Error('Account not found.')
+      assertCanManageAccount(admin.id, target)
+      if (target.isActive === enabled) return
+      if (!enabled) {
+        const count = await tx.user.count({ where: { role: 'admin', isActive: true } })
+        assertCanRevokeAdminAccess(target, count)
+      }
+      await tx.user.update({
+        where: { id },
+        data: { isActive: enabled, credentialVersion: { increment: 1 } },
+      })
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
     refreshUsers()
     return { ok: true as const }
   } catch (error) {
@@ -91,20 +132,21 @@ export async function resetMemberPassword(userId: string) {
   try {
     const admin = await requireAdmin()
     const id = userIdSchema.parse(userId)
-    if (admin.id === id) throw new Error('Cannot reset your own password from People.')
+    const target = await prisma.user.findUnique({ where: { id } })
+    if (!target) throw new Error('Account not found.')
+    assertCanManageAccount(admin.id, target)
 
     const temporaryPassword = randomBytes(24).toString('base64url')
     const passwordHash = await hash(temporaryPassword, 12)
-
-    const updated = await prisma.user.updateMany({
-      where: { id, role: 'member' },
+    const result = await prisma.user.updateMany({
+      where: { id, credentialVersion: target.credentialVersion },
       data: {
         passwordHash,
         mustChangePassword: true,
         credentialVersion: { increment: 1 },
       },
     })
-    if (!updated.count) throw new Error('Account not found.')
+    if (!result.count) return { ok: false as const, error: 'Account changed. Refresh and try again.' }
     refreshUsers()
     return { ok: true as const, temporaryPassword }
   } catch (error) {

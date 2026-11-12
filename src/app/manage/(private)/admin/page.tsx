@@ -12,13 +12,13 @@ export default async function AdminPage() {
   if (current.role !== 'admin') notFound()
 
   const accounts = await prisma.user.findMany({
-    where: { role: 'member' },
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
     select: {
       id: true,
       username: true,
       email: true,
       displayName: true,
+      role: true,
       isActive: true,
       mustChangePassword: true,
       createdAt: true,
@@ -26,7 +26,7 @@ export default async function AdminPage() {
     },
   })
 
-  const members = accounts.map(({ createdAt, ...account }) => ({
+  const people = accounts.map(({ createdAt, ...account }) => ({
     ...account,
     createdAt: createdAt.toISOString(),
   }))
@@ -34,8 +34,8 @@ export default async function AdminPage() {
   return (
     <>
       <ManageHeader eyebrow="Administration" title="People" />
-      <p className="page-intro">Create private study accounts, manage access and issue replacement passwords. Each person sees only their own workspace.</p>
-      <UserAdmin members={members} />
+      <p className="page-intro">Manage everyone including administrators, create private accounts, and change user roles. Each person keeps their own workspace.</p>
+      <UserAdmin members={people} currentUserId={current.id} />
     </>
   )
 }

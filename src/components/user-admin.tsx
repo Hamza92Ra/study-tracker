@@ -3,13 +3,14 @@
 import { type FormEvent, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { createMember, resetMemberPassword, setMemberStatus } from '@/lib/admin-actions'
+import { createMember, resetMemberPassword, setMemberStatus, setAccountRole } from '@/lib/admin-actions'
 
 type Member = {
   id: string
   username: string
   email: string
   displayName: string
+  role: string
   isActive: boolean
   mustChangePassword: boolean
   createdAt: string
@@ -18,7 +19,7 @@ type Member = {
 
 type Credentials = { username: string; temporaryPassword: string }
 
-export function UserAdmin({ members }: { members: Member[] }) {
+export function UserAdmin({ members, currentUserId }: { members: Member[]; currentUserId: string }) {
   const router = useRouter()
   const [loading, setLoading] = useState('')
   const [error, setError] = useState('')
@@ -28,6 +29,7 @@ export function UserAdmin({ members }: { members: Member[] }) {
   const [email, setEmail] = useState('')
 
   const active = members.filter(member => member.isActive).length
+  const admins = members.filter(member => member.role === 'admin').length
 
   async function onCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -83,27 +85,47 @@ export function UserAdmin({ members }: { members: Member[] }) {
     router.refresh()
   }
 
+  async function onRole(member: Member) {
+    const role = member.role === 'admin' ? 'member' : 'admin'
+    const question = role === 'admin'
+      ? `Promote @${member.username} to Admin? They will be able to create users, promote other admins and manage accounts.`
+      : `Remove administrator privileges from @${member.username}?`
+    if (!window.confirm(question)) return
+    setError('')
+    setCredentials(null)
+    setLoading(member.id)
+    const result = await setAccountRole(member.id, role)
+    setLoading('')
+    if (!result.ok) {
+      setError(result.error)
+      toast.error(result.error)
+    } else {
+      toast.success(`@${member.username} is now ${role === 'admin' ? 'an Admin' : 'a Member'}`)
+      router.refresh()
+    }
+  }
+
   return (
     <div className="admin-people-stack">
       <section className="card manage-card">
         <div className="panel-head">
           <div>
-            <h2 className="admin-people-title">Members</h2>
-            <p className="panel-sub">{members.length} total · {active} active · {members.length - active} suspended</p>
+            <h2 className="admin-people-title">People</h2>
+            <p className="panel-sub">{members.length} total · {admins} admin{admins === 1 ? '' : 's'} · {members.length - admins} member{members.length - admins === 1 ? '' : 's'} · {active} active</p>
           </div>
           <span className="badge">Admin only</span>
         </div>
 
         {members.length === 0 ? (
           <div className="empty-state">
-            <h3>No members yet</h3>
+            <h3>No accounts found</h3>
             <p>Create the first member below. Their private workspace will be ready immediately.</p>
           </div>
         ) : (
           <div className="table-wrap">
             <table className="data-table">
               <thead>
-                <tr><th>Member</th><th>Status</th><th>Subjects</th><th>Sessions</th><th>Joined</th><th>Actions</th></tr>
+                <tr><th>Person</th><th>Role</th><th>Status</th><th>Subjects</th><th>Sessions</th><th>Joined</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 {members.map(member => (
@@ -111,7 +133,9 @@ export function UserAdmin({ members }: { members: Member[] }) {
                     <td>
                       <strong className="admin-member-name">{member.displayName}</strong>
                       <span className="admin-member-sub">@{member.username} · {member.email}</span>
+                      {member.id === currentUserId && <span className="admin-you-mark">You</span>}
                     </td>
+                    <td><span className={`badge ${member.role === 'admin' ? 'admin-role-badge' : ''}`}>{member.role === 'admin' ? 'Admin' : 'Member'}</span></td>
                     <td>
                       <span className={`badge ${member.isActive ? 'admin-member-active' : 'admin-member-suspended'}`}>
                         {member.isActive ? (member.mustChangePassword ? 'Setup pending' : 'Active') : 'Suspended'}
@@ -121,20 +145,30 @@ export function UserAdmin({ members }: { members: Member[] }) {
                     <td>{member._count.sessions}</td>
                     <td>{new Date(member.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <div className="admin-member-buttons">
-                        <button
-                          type="button"
-                          className="button button-secondary"
-                          disabled={loading !== ''}
-                          onClick={() => onReset(member)}
-                        >Reset password</button>
-                        <button
-                          type="button"
-                          className={`button ${member.isActive ? 'button-danger' : 'button-secondary'}`}
-                          disabled={loading !== ''}
-                          onClick={() => onStatus(member)}
-                        >{member.isActive ? 'Suspend' : 'Reactivate'}</button>
-                      </div>
+                      {member.id === currentUserId ? (
+                        <span className="admin-current-account">Current account</span>
+                      ) : (
+                        <div className="admin-member-buttons">
+                          <button
+                            type="button"
+                            className="button button-secondary"
+                            disabled={loading !== '' || !member.isActive}
+                            onClick={() => onRole(member)}
+                          >{member.role === 'admin' ? 'Remove admin' : 'Make admin'}</button>
+                          <button
+                            type="button"
+                            className="button button-secondary"
+                            disabled={loading !== ''}
+                            onClick={() => onReset(member)}
+                          >Reset password</button>
+                          <button
+                            type="button"
+                            className={`button ${member.isActive ? 'button-danger' : 'button-secondary'}`}
+                            disabled={loading !== ''}
+                            onClick={() => onStatus(member)}
+                          >{member.isActive ? 'Suspend' : 'Reactivate'}</button>
+                        </div>
+                      )>
                     </td>
                   </tr>
                 ))}

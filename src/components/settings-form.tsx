@@ -117,7 +117,7 @@ export function SettingsForm({ initial }: { initial: Form }) {
             )}
           </div>
           <div className="avatar-picker-controls">
-            <p className="avatar-picker-hint">Choose the photo beside STUDY/LEDGER. It also appears on your public study profile.</p>
+            <p className="avatar-picker-hint">Your personal photo appears in your workspace and on your public study profile. The website logo is shared by everyone.</p>
             <div className="avatar-picker-actions">
               <label htmlFor="avatar-file" className="button button-secondary">Choose photo</label>
               <input
