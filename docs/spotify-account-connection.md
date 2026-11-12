@@ -27,10 +27,15 @@ connections will need to be reconnected.
 ## What connected users can do
 
 - Click **Connect Spotify** on their Study Ledger overview.
-- Authorize `user-read-private` and `playlist-read-private` scopes.
+- Authorize `user-read-private`, `playlist-read-private`, and `user-library-read` scopes.
 - See their Spotify name, photo and Spotify profile link.
 - Click **Load my playlists** (first 20 playlists) and add one to their player.
+- Click **Load Liked Songs** to browse saved tracks in pages of 20 and add individual tracks to the embedded player.
+- Collapse or expand account/library details independently of the player; this preference is remembered per Study Ledger user in the browser.
+- Existing Spotify connections must use **Reconnect Spotify for Liked Songs** to authorize the new `user-library-read` scope.
 - Disconnect Spotify without losing playlist embeds saved in Study Ledger.
+
+The user's Spotify Liked Songs collection is not an embeddable playlist. Imported single-track embeds do not automatically play the entire Liked Songs collection sequentially.
 
 Spotify embedded playback is handled by Spotify, and full-track playback may
 require signing into Spotify or a Premium account. Account linking does not turn

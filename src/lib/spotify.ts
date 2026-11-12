@@ -15,19 +15,19 @@ export function parseSpotifyUrl(value: unknown) {
     url.hash
   ) {
     throw new Error(
-      "Use a Spotify playlist or album link from open.spotify.com.",
+      "Use a Spotify playlist, album, or track link from open.spotify.com.",
     );
   }
   const parts = url.pathname.split("/").filter(Boolean);
   const path = parts[0] === "embed" ? parts.slice(1) : parts;
   if (
     path.length !== 2 ||
-    !["playlist", "album"].includes(path[0]) ||
+    !["playlist", "album", "track"].includes(path[0]) ||
     !spotifyId.test(path[1])
   ) {
-    throw new Error("Use a valid Spotify playlist or album link.");
+    throw new Error("Use a valid Spotify playlist, album, or track link.");
   }
-  const kind = path[0] as "playlist" | "album";
+  const kind = path[0] as "playlist" | "album" | "track";
   const id = path[1];
   return {
     kind,

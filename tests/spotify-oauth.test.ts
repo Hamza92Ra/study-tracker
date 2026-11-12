@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createSpotifyAuthState, decryptSpotifyToken, encryptSpotifyToken,
-  fetchSpotifyProfile, fetchSpotifyPlaylists, requestSpotifyToken,
+  fetchSpotifyProfile, fetchSpotifyPlaylists, fetchSpotifyLikedSongs, requestSpotifyToken,
   spotifyAuthorizationUrl, spotifyCallbackUrl, spotifyCodeChallenge,
   verifySpotifyAuthState,
 } from '../src/lib/spotify-oauth'
@@ -32,6 +32,7 @@ describe('Spotify OAuth PKCE and signed state', () => {
     expect(url.searchParams.get('client_id')).toBe('some-client-id')
     expect(url.searchParams.get('scope')).toContain('user-read-private')
     expect(url.searchParams.get('scope')).toContain('playlist-read-private')
+    expect(url.searchParams.get('scope')).toContain('user-library-read')
     expect(url.searchParams.get('redirect_uri')).toBe('https://study-tracker-delta-three.vercel.app/api/spotify/callback')
   })
   it('allows only the same user with the correct state inside its 10 minute lifetime', () => {
@@ -98,5 +99,37 @@ describe('Spotify API response constraints', () => {
     expect(await requestSpotifyToken(new URLSearchParams({grant_type:'authorization_code'}))).toEqual({
       access_token:'encrypted-later',refresh_token:'refresh-me',expires_in:3600,token_type:'Bearer',
     })
+  })
+})
+
+describe('Liked Songs library', () => {
+  it('requests saved tracks with the allowed scope and returns playable track IDs', async () => {
+    const validId = '11dFghVXANMlKmJXsNCbNl'
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [
+          { track: { id: validId, name: 'Song', artists: [{ name: 'Artist' }] } },
+          { track: { id: 'bad-id', name: 'Invalid', artists: [] } },
+          { track: null },
+        ],
+        total: 21,
+        next: 'https://api.spotify.com/v1/me/tracks?limit=20&offset=20',
+      }),
+    })
+    vi.stubGlobal('fetch', mockFetch)
+    expect(await fetchSpotifyLikedSongs('secret-token', 0)).toEqual({
+      tracks: [{ id: validId, name: 'Song', artist: 'Artist', url: 'https://open.spotify.com/track/' + validId }],
+      nextOffset: 20,
+    })
+    expect(mockFetch.mock.calls[0][0]).toBe('https://api.spotify.com/v1/me/tracks?limit=20&offset=0')
+    expect(mockFetch.mock.calls[0][1].headers.Authorization).toBe('Bearer secret-token')
+  })
+  it('says to reconnect if existing token is missing the library scope', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 403 }))
+    await expect(fetchSpotifyLikedSongs('old-token', 0)).rejects.toThrow('Reconnect Spotify')
+  })
+  it('rejects unsafe pagination values', async () => {
+    await expect(fetchSpotifyLikedSongs('token', -20)).rejects.toThrow('Invalid Liked Songs page')
   })
 })

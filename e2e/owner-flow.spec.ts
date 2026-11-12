@@ -34,6 +34,14 @@ test('owner manages a subject and published study session', async ({ page }) => 
   const publicUrl = `/u/${originalUsername}`
 
   await page.goto('/manage')
+  await expect(page.getByText('CI Spotify Tester')).toBeVisible()
+  await page.getByRole('button', { name: 'Hide details' }).click()
+  await expect(page.getByRole('button', { name: 'Show details' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Load Liked Songs' })).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Show details' })).toBeVisible()
+  await page.getByRole('button', { name: 'Show details' }).click()
+  await expect(page.getByRole('button', { name: 'Load Liked Songs' })).toBeVisible()
   await page.getByLabel('Name', { exact: true }).fill(`Focus ${suffix}`)
   await page.getByLabel('Spotify link').fill('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M')
   await page.getByRole('button', { name: 'Save', exact: true }).click()

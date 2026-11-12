@@ -101,3 +101,13 @@
 .spotify-library li .button{flex:none;min-height:36px}
 .spotify-library .panel-sub{margin-top:10px}
 @media(max-width:620px){.spotify-account-empty{flex-direction:column;align-items:flex-start}.spotify-account-setup{text-align:left;max-width:none}.spotify-account-empty .button{width:100%;justify-content:center}.spotify-account-actions .button{flex:1}.spotify-library li{gap:6px}}
+
+/* Independent account-library collapse and Liked Songs browser */
+.spotify-account-top{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.spotify-details-button{display:inline-flex;align-items:center;gap:6px;flex:none;min-height:40px}
+.spotify-profile-link{display:inline-flex;align-items:center;gap:5px;margin:8px 0 0 67px;color:var(--accent);font-size:12px}
+.spotify-liked-track{display:flex;flex-direction:column;min-width:0;gap:3px}
+.spotify-liked-track strong{font-size:13px;font-weight:650;overflow-wrap:anywhere}
+.spotify-liked-track small{font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.spotify-more-button{width:100%;justify-content:center;min-height:42px}
+@media(max-width:500px){.spotify-account-top{gap:8px}.spotify-details-button{font-size:12px;padding-inline:9px}.spotify-account-avatar{width:44px;height:44px}.spotify-account-text strong{font-size:14px}.spotify-profile-link{margin-left:0}.spotify-account-panel{padding:12px}}

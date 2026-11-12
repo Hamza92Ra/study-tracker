@@ -1,7 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual, createCipheriv, createDecipheriv } from 'node:crypto'
 import { z } from 'zod'
 
-export const SPOTIFY_SCOPES = 'user-read-private playlist-read-private'
+export const SPOTIFY_SCOPES = 'user-read-private playlist-read-private user-library-read'
 
 const authPayload = z.object({
   ownerId: z.string().min(1).max(128),
@@ -170,4 +170,52 @@ export async function fetchSpotifyPlaylists(accessToken: string) {
   return result.items.filter(p => p.id && /^[A-Za-z0-9]{22}$/.test(p.id)).map(p => ({
     id: p.id!, name: p.name.slice(0, 80), url: 'https://open.spotify.com/playlist/' + p.id,
   }))
+}
+
+
+// Spotify's Liked Songs library is NOT itself an embeddable playlist.
+// Users can browse their saved tracks and add individual tracks to Study Ledger.
+const savedTrackSchema = z.object({
+  id: z.string().nullable().optional(),
+  name: z.string(),
+  artists: z.array(z.object({ name: z.string() })).optional(),
+})
+const savedTracksPageSchema = z.object({
+  items: z.array(z.object({ track: savedTrackSchema.nullable().optional() })).max(50),
+  total: z.number().int().nonnegative().optional(),
+  next: z.string().nullable().optional(),
+})
+
+export async function fetchSpotifyLikedSongs(accessToken: string, offset = 0) {
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 10000) {
+    throw new Error('Invalid Liked Songs page')
+  }
+  const limit = 20
+  const requestUrl = new URL('https://api.spotify.com/v1/me/tracks')
+  requestUrl.searchParams.set('limit', String(limit))
+  requestUrl.searchParams.set('offset', String(offset))
+  const response = await fetch(requestUrl.toString(), {
+    headers: { Authorization: 'Bearer ' + accessToken },
+    cache: 'no-store',
+    signal: AbortSignal.timeout(10_000),
+  })
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('Reconnect Spotify to grant access to your Liked Songs.')
+  }
+  if (!response.ok) throw new Error('Could not load your Liked Songs. Please try again.')
+  const page = savedTracksPageSchema.parse(await response.json())
+  const tracks = page.items.flatMap(({ track }) => {
+    if (!track?.id || !/^[A-Za-z0-9]{22}$/.test(track.id)) return []
+    const artist = (track.artists ?? []).map(a => a.name).join(', ').slice(0, 100)
+    return [{
+      id: track.id,
+      name: track.name.slice(0, 160),
+      artist,
+      url: 'https://open.spotify.com/track/' + track.id,
+    }]
+  })
+  const nextOffset = (page.next !== null && page.next !== undefined)
+    ? offset + limit
+    : (page.total !== undefined && offset + limit < page.total ? offset + limit : null)
+  return { tracks, nextOffset: nextOffset !== null && nextOffset <= 10000 ? nextOffset : null }
 }

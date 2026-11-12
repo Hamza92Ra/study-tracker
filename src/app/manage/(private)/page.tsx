@@ -149,6 +149,7 @@ export default async function Manage({ searchParams }: { searchParams: Promise<{
           selectedId={settings?.selectedSpotifyLinkId ?? null}
           visible={settings?.spotifyWidgetVisible ?? true}
           account={spotifyAccount}
+          workspaceId={owner.id}
           accountConnectEnabled={Boolean(process.env.SPOTIFY_CLIENT_ID)}
           connectionNotice={params.spotify === 'connected' ? 'connected' : params.spotify_error}
         />
