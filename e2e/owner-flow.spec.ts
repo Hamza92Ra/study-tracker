@@ -22,6 +22,12 @@ test('owner manages a subject and published study session', async ({ page }) => 
   await page.getByLabel('Username', { exact: true }).fill(changedUsername)
   await page.getByLabel('Profile visibility').selectOption('public')
   await page.getByRole('button', { name: 'Save settings' }).click()
+  // CI-only diagnostic to distinguish client validation errors from network or auth issues.
+  console.info('CI_OWNER_SETTINGS_AFTER_SAVE', JSON.stringify({
+    location: page.url(),
+    body: (await page.locator('body').innerText()).slice(0, 2400),
+    username: await page.getByLabel('Username', { exact: true }).inputValue(),
+  }))
   await expect(page.getByText(`Your public URL: /u/${changedUsername}`)).toBeVisible()
   await expect(page.getByRole('link', { name: 'View public site' })).toHaveAttribute('href', `/u/${changedUsername}`)
   await page.getByLabel('Username', { exact: true }).fill(originalUsername)
