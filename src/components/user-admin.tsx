@@ -168,7 +168,7 @@ export function UserAdmin({ members, currentUserId }: { members: Member[]; curre
                             onClick={() => onStatus(member)}
                           >{member.isActive ? 'Suspend' : 'Reactivate'}</button>
                         </div>
-                      )>
+                      )}
                     </td>
                   </tr>
                 ))}
