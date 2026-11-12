@@ -57,3 +57,18 @@ the web embed into a remote Spotify playback controller.
 
 After production deployment, verify sign-in, account linking, playlist import,
 and account disconnection with a real Spotify allowlisted user.
+
+
+## Now Playing status
+
+The account card shows live Spotify playback metadata (song, artist, artwork,
+playing/paused and progress) when the user is listening through any Spotify device.
+Uses the `user-read-currently-playing` permission and Spotify's
+`GET /v1/me/player/currently-playing` API, polling every 30 seconds while
+the dashboard tab is visible. No music audio is streamed or controlled by
+Study Ledger; playback stays in the Spotify app.
+
+Existing connected users need to click **Reconnect Spotify** once to grant
+the new permission. If playback is unavailable or Spotify responds with 204,
+the card shows "Nothing playing". The card is independent of both the
+embedded player's Hide control and the linked account's Hide details control.

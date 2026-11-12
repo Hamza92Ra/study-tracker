@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createSpotifyAuthState, decryptSpotifyToken, encryptSpotifyToken,
-  fetchSpotifyProfile, fetchSpotifyPlaylists, fetchSpotifyLikedSongs, requestSpotifyToken,
+  fetchSpotifyProfile, fetchSpotifyPlaylists, fetchSpotifyLikedSongs, fetchSpotifyNowPlaying, requestSpotifyToken,
   spotifyAuthorizationUrl, spotifyCallbackUrl, spotifyCodeChallenge,
   verifySpotifyAuthState,
 } from '../src/lib/spotify-oauth'
@@ -33,6 +33,7 @@ describe('Spotify OAuth PKCE and signed state', () => {
     expect(url.searchParams.get('scope')).toContain('user-read-private')
     expect(url.searchParams.get('scope')).toContain('playlist-read-private')
     expect(url.searchParams.get('scope')).toContain('user-library-read')
+    expect(url.searchParams.get('scope')).toContain('user-read-currently-playing')
     expect(url.searchParams.get('redirect_uri')).toBe('https://study-tracker-delta-three.vercel.app/api/spotify/callback')
   })
   it('allows only the same user with the correct state inside its 10 minute lifetime', () => {
@@ -131,5 +132,54 @@ describe('Liked Songs library', () => {
   })
   it('rejects unsafe pagination values', async () => {
     await expect(fetchSpotifyLikedSongs('token', -20)).rejects.toThrow('Invalid Liked Songs page')
+  })
+})
+
+
+describe('Now Playing status', () => {
+  it('returns an empty status if Spotify reports 204 No Content', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 204 }))
+    expect(await fetchSpotifyNowPlaying('spotify-access')).toBeNull()
+  })
+  it('returns only safe track data and the current playback position', async () => {
+    const fake = vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({
+        is_playing: true, progress_ms: 95000, currently_playing_type: 'track',
+        item: {
+          type: 'track', name: 'Study Session', duration_ms: 240000,
+          artists: [{ name: 'Example Artist' }],
+          external_urls: { spotify: 'https://open.spotify.com/track/11dFghVXANMlKmJXsNCbNl' },
+          album: { images: [{ url: 'https://i.scdn.co/image/example' }] },
+        },
+      }),
+    })
+    vi.stubGlobal('fetch', fake)
+    expect(await fetchSpotifyNowPlaying('spotify-access')).toEqual({
+      kind: 'track', name: 'Study Session', artist: 'Example Artist', isPlaying: true,
+      artworkUrl: 'https://i.scdn.co/image/example',
+      spotifyUrl: 'https://open.spotify.com/track/11dFghVXANMlKmJXsNCbNl',
+      progressMs: 95000, durationMs: 240000,
+    })
+    expect(fake).toHaveBeenCalledWith('https://api.spotify.com/v1/me/player/currently-playing',
+      expect.objectContaining({ cache: 'no-store', headers: { Authorization: 'Bearer spotify-access' } }))
+  })
+  it('handles paused tracks, ads, and missing content correctly', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({
+      ok: true, status: 200, json: async () => ({
+        is_playing: false, progress_ms: 100, currently_playing_type: 'track',
+        item: { type: 'track', name: 'Paused', duration_ms: 5000, artists: [] },
+      }),
+    }).mockResolvedValueOnce({
+      ok: true, status: 200, json: async () => ({ is_playing: true, currently_playing_type: 'ad', item: null }),
+    }))
+    expect((await fetchSpotifyNowPlaying('spotify-access'))?.isPlaying).toBe(false)
+    expect(await fetchSpotifyNowPlaying('spotify-access')).toBeNull()
+  })
+  it('asks users with old permissions to reconnect and handles rate limiting', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce({ ok: false, status: 403 })
+      .mockResolvedValueOnce({ ok: false, status: 429 }))
+    await expect(fetchSpotifyNowPlaying('old-token')).rejects.toThrow('Reconnect Spotify')
+    await expect(fetchSpotifyNowPlaying('old-token')).rejects.toThrow('limiting playback updates')
   })
 })
