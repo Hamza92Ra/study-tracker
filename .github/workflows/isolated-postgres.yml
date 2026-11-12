@@ -1,9 +1,6 @@
 name: Study Ledger isolated database checks
 
 on:
-  push:
-    branches:
-      - feature/spotify-public-profiles-mobile
   pull_request:
     branches:
       - main
@@ -74,4 +71,4 @@ jobs:
       - name: Install Chromium for Playwright
         run: npx playwright install --with-deps chromium
       - name: Authenticated browser tests against disposable database
-        run: npx playwright test --project=chromium --workers=1
+        run: npx playwright test --workers=1
