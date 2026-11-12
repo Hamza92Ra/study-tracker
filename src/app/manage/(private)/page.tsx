@@ -18,9 +18,10 @@ import { SignOut } from "@/components/signout";
 import { Card } from "@/components/ui/card";
 import { SessionList } from "@/components/session-list";
 
-export default async function Manage() {
+export default async function Manage({ searchParams }: { searchParams: Promise<{ spotify?: string; spotify_error?: string }> }) {
+  const params = await searchParams;
   const owner = await ownerPage();
-  const [subjects, sessions, recent, timer, goal, settings, spotifyLinks] =
+  const [subjects, sessions, recent, timer, goal, settings, spotifyLinks, spotifyAccount] =
     await Promise.all([
       prisma.subject.findMany({
         where: { ownerId: owner.id },
@@ -48,6 +49,10 @@ export default async function Manage() {
         where: { ownerId: owner.id },
         orderBy: { createdAt: "desc" },
         select: { id: true, kind: true, spotifyId: true, label: true },
+      }),
+      prisma.spotifyAccount.findUnique({
+        where: { ownerId: owner.id },
+        select: { displayName: true, avatarUrl: true, profileUrl: true },
       }),
     ]);
   const zone = settings?.timezone ?? "Africa/Casablanca";
@@ -143,6 +148,9 @@ export default async function Manage() {
           links={spotifyLinks}
           selectedId={settings?.selectedSpotifyLinkId ?? null}
           visible={settings?.spotifyWidgetVisible ?? true}
+          account={spotifyAccount}
+          accountConnectEnabled={Boolean(process.env.SPOTIFY_CLIENT_ID)}
+          connectionNotice={params.spotify === 'connected' ? 'connected' : params.spotify_error}
         />
       </div>
       <div className="section-heading">
