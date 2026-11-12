@@ -13,6 +13,7 @@ type Form = z.input<typeof settingsSchema>
 const MAX_FILE_BYTES = 5 * 1024 * 1024
 const MAX_DATA_URL_LENGTH = 180_000
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const timezones = [['Africa/Casablanca', 'Casablanca'], ['UTC', 'UTC'], ['Europe/London', 'London'], ['Europe/Paris', 'Paris'], ['America/New_York', 'New York'], ['Asia/Tokyo', 'Tokyo']]
 
 async function processAvatar(file: File): Promise<string> {
   if (!IMAGE_TYPES.includes(file.type)) throw new Error('Choose a JPG, PNG, or WebP photo.')
@@ -62,6 +63,7 @@ export function SettingsForm({ initial }: { initial: Form }) {
   const [preparing, setPreparing] = useState(false)
   const form = useForm<Form>({ resolver: zodResolver(settingsSchema), defaultValues: initial })
   const selectedAvatar = useWatch({ control: form.control, name: 'avatarUrl' }) || ''
+  const selectedUsername = useWatch({ control: form.control, name: 'username' }) || ''
   const isUpload = selectedAvatar.startsWith('data:image/')
 
   async function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
@@ -87,6 +89,7 @@ export function SettingsForm({ initial }: { initial: Form }) {
     setBusy(false)
     setMessage(result.ok ? 'Settings saved.' : result.error)
     if (result.ok) {
+      form.setValue('username', result.username)
       if (values.themePreference === 'system') localStorage.removeItem('study-theme')
       else localStorage.setItem('study-theme', values.themePreference)
       toast.success('Settings saved')
@@ -100,12 +103,17 @@ export function SettingsForm({ initial }: { initial: Form }) {
   return (
     <form onSubmit={form.handleSubmit(submit)} className="card manage-card form-grid">
       <div className="field">
+        <label htmlFor="username">Username</label>
+        <input id="username" className="input" autoComplete="username" maxLength={32} {...form.register('username')} />
+        <small className="panel-sub">Your public URL: /u/{selectedUsername.trim().toLowerCase()}</small>
+      </div>
+      <div className="field">
         <label htmlFor="display-name">Display name</label>
         <input id="display-name" className="input" {...form.register('displayName')} />
       </div>
 
       <div className="field full">
-        <label>Profile photo / brand picture</label>
+        <label>Profile photo</label>
         <div className="avatar-picker">
           <div className="avatar-picker-preview">
             {selectedAvatar ? (
@@ -113,7 +121,7 @@ export function SettingsForm({ initial }: { initial: Form }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={selectedAvatar} alt="Preview of your chosen avatar" referrerPolicy="no-referrer" />
             ) : (
-              <span>SL</span>
+              <span>{initial.displayName.slice(0, 1).toUpperCase()}</span>
             )}
           </div>
           <div className="avatar-picker-controls">
@@ -177,15 +185,10 @@ export function SettingsForm({ initial }: { initial: Form }) {
       </div>
       <div className="field">
         <label htmlFor="timezone">Timezone</label>
-        <input id="timezone" className="input" list="timezones" {...form.register('timezone')} />
-        <datalist id="timezones">
-          <option value="Africa/Casablanca" />
-          <option value="UTC" />
-          <option value="Europe/London" />
-          <option value="Europe/Paris" />
-          <option value="America/New_York" />
-          <option value="Asia/Tokyo" />
-        </datalist>
+        <select id="timezone" {...form.register('timezone')}>
+          {![...timezones].some(([value]) => value === initial.timezone) && <option value={initial.timezone}>{initial.timezone.split('/').at(-1)?.replaceAll('_', ' ')}</option>}
+          {timezones.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
       </div>
       <div className="field">
         <label htmlFor="profile-visibility">Profile visibility</label>

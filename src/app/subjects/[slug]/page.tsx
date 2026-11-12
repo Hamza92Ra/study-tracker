@@ -1,15 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
-import { notFound } from 'next/navigation'
-import { publicSummary } from '@/lib/data'
-import { duration } from '@/lib/format'
-import { dailyAllocation, localDay, weeklySeries } from '@/lib/time'
-import { PublicShell } from '@/components/public-shell'
-import { SubjectIcon } from '@/components/icons'
-import { Card } from '@/components/ui/card'
-import { TrendChart } from '@/components/charts'
-import { SessionList } from '@/components/session-list'
-export const dynamic='force-dynamic'
+import { PublicSubject } from '@/components/public-subject'
+export const dynamic = 'force-dynamic'
 export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{const {slug}=await params;return {title:slug.replace(/-/g,' '),description:'Study statistics and recent sessions for this subject.'}}
-export default async function Subject({params}:{params:Promise<{slug:string}>}){const {slug}=await params;const data=await publicSummary();const subject=data?.distribution.find(s=>s.slug===slug);if(!data||!subject)notFound();const sessions=data.sessions.filter(s=>s.subjectId===subject.id);const days=dailyAllocation(sessions,data.zone);const trend=weeklySeries(days,localDay(new Date(),data.zone));return <PublicShell><main className="container public-main"><span className="eyebrow">Learning area / {subject.isArchived?'Archived':'Active'}</span><Card className="subject-hero mt-4"><span className="subject-icon" style={{background:`${subject.color}20`,color:subject.color}}><SubjectIcon name={subject.icon}/></span><div><h1>{subject.name}</h1><p>{subject.description||'A dedicated space for learning.'}</p><span className="badge">Created {subject.createdAt.toLocaleDateString('en',{month:'long',year:'numeric'})}</span></div></Card><div className="stats-grid mt-5">{[['Total study time',duration(subject.seconds)],['Sessions',String(subject.count)],['Share of total',`${subject.percent}%`]].map(([label,value])=><Card className="stat-card" key={label}><span className="stat-label">{label}</span><strong className="stat-value">{value}</strong></Card>)}</div><div className="section-heading"><div><span className="eyebrow">Progress over time</span><h2>Weekly study trend</h2></div></div><Card className="panel"><TrendChart data={trend}/></Card><div className="section-heading"><div><span className="eyebrow">Subject log</span><h2>Recent sessions</h2></div><Link href={`/activity?subject=${subject.slug}`}>Full history <ArrowRight size={15}/></Link></div><Card className="panel"><SessionList sessions={sessions.slice(0,20)} zone={data.zone}/></Card></main></PublicShell>}
+export default async function Subject({params}:{params:Promise<{slug:string}>}) { const {slug}=await params; return <PublicSubject slug={slug}/> }

@@ -18,6 +18,7 @@ export default async function PrivateLayout({ children }: { children: React.Reac
         preference={preference?.themePreference}
         avatarUrl={account.avatarUrl}
         displayName={account.displayName}
+        username={account.username}
         isAdmin={account.role === 'admin'}
       />
       <main className="manage-main">{children}</main>

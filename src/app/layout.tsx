@@ -6,10 +6,6 @@ export const metadata: Metadata = {
   title: { default: 'Study Ledger', template: '%s · Study Ledger' },
   description: 'A thoughtful public record of learning and progress.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
-  icons: {
-    icon: [{ url: '/study-ledger-logo.webp', type: 'image/webp', sizes: '96x96' }],
-    shortcut: '/study-ledger-logo.webp',
-  },
   openGraph: {
     type: 'website',
     title: 'Study Ledger',

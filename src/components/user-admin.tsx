@@ -130,21 +130,21 @@ export function UserAdmin({ members, currentUserId }: { members: Member[]; curre
               <tbody>
                 {members.map(member => (
                   <tr key={member.id}>
-                    <td>
+                    <td data-label="Person">
                       <strong className="admin-member-name">{member.displayName}</strong>
                       <span className="admin-member-sub">@{member.username} · {member.email}</span>
                       {member.id === currentUserId && <span className="admin-you-mark">You</span>}
                     </td>
-                    <td><span className={`badge ${member.role === 'admin' ? 'admin-role-badge' : ''}`}>{member.role === 'admin' ? 'Admin' : 'Member'}</span></td>
-                    <td>
+                    <td data-label="Role"><span className={`badge ${member.role === 'admin' ? 'admin-role-badge' : ''}`}>{member.role === 'admin' ? 'Admin' : 'Member'}</span></td>
+                    <td data-label="Status">
                       <span className={`badge ${member.isActive ? 'admin-member-active' : 'admin-member-suspended'}`}>
                         {member.isActive ? (member.mustChangePassword ? 'Setup pending' : 'Active') : 'Suspended'}
                       </span>
                     </td>
-                    <td>{member._count.subjects}</td>
-                    <td>{member._count.sessions}</td>
-                    <td>{new Date(member.createdAt).toLocaleDateString()}</td>
-                    <td>
+                    <td data-label="Subjects">{member._count.subjects}</td>
+                    <td data-label="Sessions">{member._count.sessions}</td>
+                    <td data-label="Joined">{new Date(member.createdAt).toLocaleDateString()}</td>
+                    <td data-label="Actions">
                       {member.id === currentUserId ? (
                         <span className="admin-current-account">Current account</span>
                       ) : (
