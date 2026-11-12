@@ -38,11 +38,14 @@ test('member can use their own Spotify and public profile but cannot access Peop
   await expect(page.locator('body')).toContainText('Page not found')
 
   await page.goto('/manage/settings')
+  // Wait for the settings form to hydrate before typing; otherwise React Hook Form
+  // may replace the typed username with its initial default value.
+  await expect(page.getByLabel('Username', { exact: true })).toHaveValue('ci_member')
   const updatedName = 'ci_member_renamed'
   await page.getByLabel('Username', { exact: true }).fill(updatedName)
   await page.getByRole('button', { name: 'Save settings' }).click()
-  await expect(page.getByText('Your public URL: /u/ci_member_renamed')).toBeVisible()
   await expect(page.getByRole('link', { name: 'View public site' })).toHaveAttribute('href', '/u/ci_member_renamed')
+  await expect(page.getByText('Your public URL: /u/ci_member_renamed')).toBeVisible()
   await page.goto('/u/ci_member_renamed')
   await expect(page.getByText('Published CI Member Session').first()).toBeVisible()
   await page.goto('/u/ci_member')
