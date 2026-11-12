@@ -33,6 +33,7 @@ describe('Spotify OAuth PKCE and signed state', () => {
     expect(url.searchParams.get('scope')).toContain('user-read-private')
     expect(url.searchParams.get('scope')).toContain('playlist-read-private')
     expect(url.searchParams.get('scope')).toContain('user-library-read')
+    expect(url.searchParams.get('scope')).toContain('playlist-modify-private')
     expect(url.searchParams.get('scope')).toContain('user-read-currently-playing')
     expect(url.searchParams.get('redirect_uri')).toBe('https://study-tracker-delta-three.vercel.app/api/spotify/callback')
   })
