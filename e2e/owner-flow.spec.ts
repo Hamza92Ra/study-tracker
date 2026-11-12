@@ -45,6 +45,10 @@ test('owner manages a subject and published study session', async ({ page }) => 
   await expect(page.getByRole('button', { name: 'Show details' })).toBeVisible()
   await page.getByRole('button', { name: 'Show details' }).click()
   await expect(page.getByRole('button', { name: 'Load Liked Songs' })).toBeVisible()
+  await expect(page.getByText('Liked Songs', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Browse Liked Songs' })).toBeVisible()
+  // Spotify's saved-track library is a virtual entry, not a playlist that can be added wholesale.
+  await expect(page.getByLabel('Your Spotify playlists and Liked Songs')).toBeVisible()
   await page.getByLabel('Name', { exact: true }).fill(`Focus ${suffix}`)
   await page.getByLabel('Spotify link').fill('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M')
   await page.getByRole('button', { name: 'Save', exact: true }).click()
