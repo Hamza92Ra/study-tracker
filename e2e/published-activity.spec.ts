@@ -1,0 +1,37 @@
+import { test, expect } from '@playwright/test'
+
+test.skip(!process.env.E2E_OWNER_USERNAME || !process.env.E2E_OWNER_PASSWORD, 'Requires isolated CI PostgreSQL owner')
+
+test('admin can inspect only published activity, filter people, and open profiles', async ({ page }) => {
+  await page.goto('/manage/login')
+  await page.getByLabel('Username or email').fill(process.env.E2E_OWNER_USERNAME!)
+  await page.getByLabel('Password').fill(process.env.E2E_OWNER_PASSWORD!)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.waitForURL(/\/manage$/, { timeout: 45000 })
+  await page.getByRole('link', { name: 'Published Activity' }).click()
+  await expect(page).toHaveURL(/\/manage\/admin\/published/)
+  await expect(page.getByRole('heading', { name: 'Published Activity' })).toBeVisible()
+  await expect(page.getByText('Published CI Member Session')).toBeVisible()
+  await expect(page.getByText('Published CI Owner Session')).toBeVisible()
+  await expect(page.getByText('Hidden CI Member Session')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Open ci_member public profile' })).toHaveAttribute('href', '/u/ci_member')
+  await expect(page.getByRole('link', { name: 'Open ci_private public profile' })).toHaveCount(0)
+  await page.getByLabel('Username').selectOption('ci_member')
+  await page.getByRole('button', { name: 'Apply filters' }).click()
+  await expect(page.getByText('Published CI Member Session')).toBeVisible()
+  await expect(page.getByText('Published CI Owner Session')).toHaveCount(0)
+  await expect(page.getByText('Hidden CI Member Session')).toHaveCount(0)
+})
+
+test('published activity is usable at narrow mobile width', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.goto('/manage/login')
+  await page.getByLabel('Username or email').fill(process.env.E2E_OWNER_USERNAME!)
+  await page.getByLabel('Password').fill(process.env.E2E_OWNER_PASSWORD!)
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.waitForURL(/\/manage$/, { timeout: 45000 })
+  await page.goto('/manage/admin/published')
+  await expect(page.getByRole('heading', { name: 'Published Activity' })).toBeVisible()
+  await expect(page.getByLabel('Username')).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)
+})

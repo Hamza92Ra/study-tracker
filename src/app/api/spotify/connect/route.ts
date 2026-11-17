@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { currentAccount } from '@/lib/auth'
 import {
   createSpotifyAuthState, spotifyAuthorizationUrl, spotifyCallbackUrl,
@@ -14,7 +14,7 @@ function returnToApp(code: string) {
   return NextResponse.redirect(uri)
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   const user = await currentAccount()
   if (!user) return NextResponse.redirect(new URL('/manage/login', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'))
   if (user.mustChangePassword) return NextResponse.redirect(new URL('/manage/change-password', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'))

@@ -7,13 +7,25 @@ test('public profiles expose only explicitly published sessions and respect priv
   await page.goto('/u/ci_member')
   await expect(page.getByText('Published CI Member Session').first()).toBeVisible()
   await expect(page.getByText('Hidden CI Member Session')).toHaveCount(0)
+  await expect(page.getByText('Published CI Owner Session')).toHaveCount(0)
   await page.goto('/u/ci_member/activity')
   await expect(page.getByText('Published CI Member Session').first()).toBeVisible()
   await expect(page.getByText('Hidden CI Member Session')).toHaveCount(0)
+  await expect(page.getByText('Published CI Owner Session')).toHaveCount(0)
+  await page.goto('/u/ci_owner')
+  await expect(page.getByText('Published CI Owner Session').first()).toBeVisible()
+  await expect(page.getByText('Published CI Member Session')).toHaveCount(0)
   await page.goto('/u/ci_private')
   await expect(page.locator('body')).toContainText('Page not found')
   await page.goto('/u/ci_private/activity')
   await expect(page.locator('body')).toContainText('Page not found')
+})
+
+test('public profile fits a small mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 })
+  await page.goto('/u/ci_member')
+  await expect(page.locator('.hero-bottom')).toContainText('@ci_member')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320)
 })
 
 test('member can use their own Spotify and public profile but cannot access People', async ({ page }) => {
@@ -24,6 +36,12 @@ test('member can use their own Spotify and public profile but cannot access Peop
   await page.waitForURL(/\/manage$/, { timeout: 45000 })
   await expect(page.getByRole('heading', { name: /Good to see you/ })).toBeVisible()
   await expect(page.getByRole('link', { name: 'View public site' })).toHaveAttribute('href', '/u/ci_member')
+  const publicTabPromise = page.waitForEvent('popup')
+  await page.getByRole('link', { name: 'View public site' }).click()
+  const publicTab = await publicTabPromise
+  await expect(publicTab).toHaveURL(/\/u\/ci_member$/)
+  await expect(publicTab.getByText('Published CI Member Session').first()).toBeVisible()
+  await publicTab.close()
   await expect(page.getByText('Connect your Spotify profile')).toBeVisible()
   await expect(page.getByText('Account linking requires Spotify app setup')).toBeVisible()
 
@@ -35,6 +53,8 @@ test('member can use their own Spotify and public profile but cannot access Peop
   await expect(page.getByTitle('Spotify playlist: CI member soundtrack')).toHaveCount(0)
 
   await page.goto('/manage/admin')
+  await expect(page.locator('body')).toContainText('Page not found')
+  await page.goto('/manage/admin/published')
   await expect(page.locator('body')).toContainText('Page not found')
 
   await page.goto('/manage/settings')
@@ -50,4 +70,9 @@ test('member can use their own Spotify and public profile but cannot access Peop
   await expect(page.getByText('Published CI Member Session').first()).toBeVisible()
   await page.goto('/u/ci_member')
   await expect(page.locator('body')).toContainText('Page not found')
+  await page.goto('/manage/settings')
+  await expect(page.getByLabel('Username', { exact: true })).toHaveValue(updatedName)
+  await page.getByLabel('Username', { exact: true }).fill('ci_member')
+  await page.getByRole('button', { name: 'Save settings' }).click()
+  await expect(page.getByRole('link', { name: 'View public site' })).toHaveAttribute('href', '/u/ci_member')
 })
