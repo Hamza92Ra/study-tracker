@@ -10,6 +10,7 @@ import {
   Clock3,
   LayoutDashboard,
   List,
+  Radio,
   Menu,
   Settings,
   Users,
@@ -109,14 +110,14 @@ export function ManageNav({
             </Link>
           ))}
           {isAdmin && (
-            <Link
-              href="/manage/admin"
-              aria-current={pathname === "/manage/admin" ? "page" : undefined}
-              onClick={() => setOpen(false)}
-            >
-              <Users size={18} />
-              People
-            </Link>
+            <>
+              <Link href="/manage/admin" aria-current={pathname === "/manage/admin" ? "page" : undefined} onClick={() => setOpen(false)}>
+                <Users size={18} /> People
+              </Link>
+              <Link href="/manage/admin/published" aria-current={pathname === "/manage/admin/published" ? "page" : undefined} onClick={() => setOpen(false)}>
+                <Radio size={18} /> Published Activity
+              </Link>
+            </>
           )}
         </nav>
         <div className="manage-nav-footer">

@@ -67,7 +67,7 @@ export async function PublicOverview({ username }: { username?: string } = {}) {
                   )}
                 </span>
                 <span>
-                  {owner.displayName} · {hours(data.totalSeconds)} hours
+                  {owner.displayName} · @{owner.username} · {hours(data.totalSeconds)} hours
                   invested
                 </span>
               </div>

@@ -57,6 +57,9 @@ async function main() {
   const memberSubject = await prisma.subject.create({
     data: { ownerId: member.id, name: 'Public Demo Subject', slug: 'public-demo-subject', color: '#1c8056', icon: 'book' },
   })
+  const adminSubject = await prisma.subject.create({
+    data: { ownerId: admin.id, name: 'Owner Published Subject', slug: 'owner-published-subject', color: '#537a52', icon: 'book' },
+  })
   const privateSubject = await prisma.subject.create({
     data: { ownerId: privateUser.id, name: 'Private Profile Subject', slug: 'private-profile-subject', color: '#2c8056', icon: 'book' },
   })
@@ -64,6 +67,7 @@ async function main() {
   const base = { startedAt: new Date(now-2*3600_000), endedAt: new Date(now-3600_000), durationSeconds: 3600 }
   await prisma.studySession.createMany({
     data: [
+      { ...base, ownerId: admin.id, subjectId: adminSubject.id, title: 'Published CI Owner Session', isPublic: true },
       { ...base, ownerId: member.id, subjectId: memberSubject.id, title: 'Published CI Member Session', isPublic: true },
       { ...base, ownerId: member.id, subjectId: memberSubject.id, title: 'Hidden CI Member Session', isPublic: false },
       { ...base, ownerId: privateUser.id, subjectId: privateSubject.id, title: 'Hidden CI Private Profile Session', isPublic: true },
